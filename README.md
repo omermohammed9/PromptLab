@@ -1,60 +1,94 @@
-# Welcome to PromptLab!
+# 🧪 PromptLab
 
-Welcome to your new developer home! Your project has been successfully migrated to Antigravity.
-
-Antigravity is our next-generation, agent-first IDE designed for high-velocity, autonomous development. Because Antigravity runs locally on your machine, you now have access to powerful local workflows and fully integrated AI editing capabilities that go beyond a cloud-based web IDE.
-
-## Getting Started
-- **Run Locally**: Use the **Run and Debug** menu on the left sidebar to start your local development server.
-  - Or in a terminal run `npm run dev` and visit `http://localhost:3000`.
-- **Testing**:
-  - Run `npx playwright test` to execute end-to-end tests.
-  - The test runner is configured to automatically start the application server if it's not already running.
-- **Deploy**: You can deploy your changes to your preferred hosting provider using standard CLI commands.
-- **Cleanup**: Cleanup unused artifacts with the @cleanup workflow.
-
-Enjoy the next era of AI-driven development!
-
-**Project Migration Date:** 2026-04-21
-
+**PromptLab** is a premium, full-stack platform designed for high-velocity AI prompt engineering. It provides a sophisticated environment for developers and AI enthusiasts to create, test, version, and share prompts across multiple LLM providers.
 
 ---
 
-## Previous README.md contents:
+## 🚀 Key Features
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### 🤖 Multi-Model Intelligence
+- **Unified Interface**: Generate and test prompts across **Google Gemini**, **OpenAI**, **Groq**, and **Hugging Face** from a single workbench.
+- **Real-time Streaming**: Experience low-latency AI responses with optimized streaming support.
+- **Version Control**: Built-in prompt versioning with a **Visual Diff** tool to track changes over time.
 
-## Getting Started
+### 💎 Premium Experience
+- **Aesthetic Design**: A sleek, glassmorphic UI built with **Tailwind CSS** and **Framer Motion**.
+- **Dynamic Workbench**: An interactive workspace with markdown support, auto-saving, and syntax highlighting.
+- **Community Feed**: Discover, like, and bookmark prompts from a curated public feed.
 
-First, run the development server:
+### 🛠️ Developer-First Tools
+- **PDF Export**: Export your prompts and results into professional PDF documents.
+- **Rate Limiting**: Integrated **Upstash Redis** to ensure fair usage and prevent API abuse.
+- **Security First**: Powered by **Supabase Auth** with strict Row Level Security (RLS) policies.
+
+---
+
+## 💻 Tech Stack
+
+- **Frontend**: [Next.js 15+](https://nextjs.org/) (App Router), [React 19](https://react.dev/), [Framer Motion](https://www.framer.com/motion/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/)
+- **Backend/Auth**: [Supabase](https://supabase.com/)
+- **AI SDKs**: Gemini, OpenAI, Groq, Hugging Face
+- **Caching/Rate Limiting**: [Upstash Redis](https://upstash.com/)
+- **Testing**: [Playwright](https://playwright.dev/)
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 20+ 
+- A Supabase Project
+- API Keys for AI providers (Google, OpenAI, etc.)
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/omermohammed9/PromptLab.git
+   cd PromptLab
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**:
+   Create a `.env.local` file in the root directory and add your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+   GOOGLE_GENERATIVE_AI_API_KEY=your_key
+   OPENAI_API_KEY=your_key
+   # ... add other provider keys
+   ```
+
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+   Visit `http://localhost:3000` to see the lab in action.
+
+---
+
+## 🧪 Testing
+
+We use **Playwright** for robust end-to-end testing.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Run all tests
+npx playwright test
+
+# Open Playwright UI
+npx playwright test --ui
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📜 License
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Built with ❤️ by the PromptLab Team.*
