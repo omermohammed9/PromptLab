@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 
 // Services & Hooks
 import { getUserVault } from '@/services/prompts'
-import { PromptInputSchema, checkRateLimit } from '@/lib/validation'
+import { PromptInputSchema } from '@/lib/validation'
 import { usePromptFeed } from '@/hooks/usePromptFeed' 
 import { useAuth } from '@/hooks/useAuth'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -89,7 +89,6 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
     if (isAiLoading || isSaving) return
     try {
       const validInput = PromptInputSchema.parse(input)
-      if (session) checkRateLimit(session.user.id)
       setIsAiLoading(true)
       const data = await refinePrompt(validInput)
       setRefined(data)

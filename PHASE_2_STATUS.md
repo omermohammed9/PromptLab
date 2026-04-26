@@ -15,7 +15,10 @@
   - [x] Implement a "Diffing" engine to highlight text changes between two AI outputs.
 - [x] **State Management Overhaul**
   - [x] Integrate **TanStack Query** (React Query) for feed and vault data fetching.
-  - [x] Implement optimistic updates for Tags and Public/Private toggles.
+  - [x] **API Security & Rate Limiting**
+  - [x] Integrate **Upstash Redis** for sliding-window rate limiting.
+  - [x] Verify compatibility with the dual-token (Access/Refresh) auth system.
+  - [x] Secure sensitive API keys by moving logic to Server Actions.
 
 ## 📋 Progress Tracking (Summary)
 
