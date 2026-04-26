@@ -7,6 +7,9 @@ Antigravity is our next-generation, agent-first IDE designed for high-velocity, 
 ## Getting Started
 - **Run Locally**: Use the **Run and Debug** menu on the left sidebar to start your local development server.
   - Or in a terminal run `npm run dev` and visit `http://localhost:3000`.
+- **Testing**:
+  - Run `npx playwright test` to execute end-to-end tests.
+  - The test runner is configured to automatically start the application server if it's not already running.
 - **Deploy**: You can deploy your changes to your preferred hosting provider using standard CLI commands.
 - **Cleanup**: Cleanup unused artifacts with the @cleanup workflow.
 
