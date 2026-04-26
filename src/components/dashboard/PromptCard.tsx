@@ -9,6 +9,7 @@ import { Prompt } from '@/types/interface'
 import ExpandableText from '@/components/ui/ExpandableText'
 import toast from 'react-hot-toast'
 import PromptReasoning from './PromptReasoning'
+import ParticleBurst from '@/components/ui/ParticleBurst'
 
 interface PromptCardProps {
   prompt: Prompt
@@ -18,7 +19,7 @@ interface PromptCardProps {
     onTogglePublic?: (id: string, current: boolean) => void
     onDelete?: (id: string, title: string) => void
     onRemix?: (content: string, id: string) => Promise<void>
-    onLike?: (id: string) => Promise<any>
+    onLike?: (id: string) => Promise<boolean>
   }
 }
 
@@ -38,6 +39,7 @@ export default function PromptCard({
   const [isLiked, setIsLiked] = useState(p.is_liked || false)
   const [likesCount, setLikesCount] = useState(p.likes_count || 0)
   const [remixCount, setRemixCount] = useState(p.remix_count || 0)
+  const [burst, setBurst] = useState<{ x: number, y: number } | null>(null)
   
   // Logic to determine if card should span 2 columns (Mosaic effect)
   const isWide = index % 7 === 0 || index % 7 === 4
@@ -63,6 +65,7 @@ export default function PromptCard({
     e.stopPropagation()
     if (!actions?.onLike || isBusy) return
 
+    setBurst({ x: e.clientX, y: e.clientY })
     setActiveAction('like')
     const prevIsLiked = isLiked
     const prevCount = likesCount
@@ -87,6 +90,7 @@ export default function PromptCard({
     e.stopPropagation()
     if (!actions?.onRemix || isBusy) return
 
+    setBurst({ x: e.clientX, y: e.clientY })
     setActiveAction('remix')
     
     // Optimistic Update (UI count)
@@ -144,24 +148,26 @@ export default function PromptCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -8, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`
-        group relative bg-white dark:bg-slate-900 p-5 md:p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm 
-        hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/60 hover:border-blue-200 dark:hover:border-blue-900/50 
-        transition-all duration-500 flex flex-col h-full
-        ${isWide ? 'lg:col-span-2 bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50' : ''}
-      `}
+      transition={{ 
+        type: "spring",
+        stiffness: 260,
+        damping: 20
+      }}
+      className="group relative glass-card p-6 md:p-8 rounded-[2.5rem] transition-all duration-500 flex flex-col shadow-2xl"
     >
+      {burst && <ParticleBurst x={burst.x} y={burst.y} onComplete={() => setBurst(null)} />}
       
       {/* 🟢 TOOLBAR */}
-      <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xl">
+      <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/10 dark:bg-black/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-2xl">
         
         <ActionButton 
           onClick={handleCopy}
-          icon={copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+          icon={copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
           isLoading={activeAction === 'copy'}
-          hoverColor="hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          hoverColor="hover:text-blue-400 hover:bg-white/10"
           tooltip={copied ? "Copied!" : "Copy to clipboard"}
           ariaLabel="Copy prompt content"
         />
@@ -172,14 +178,14 @@ export default function PromptCard({
             icon={<Heart size={16} className={isLiked ? "fill-red-500 text-red-500" : ""} />}
             isLoading={activeAction === 'like'}
             isActive={isLiked}
-            activeColor="text-red-500 bg-red-50 dark:bg-red-900/20"
-            hoverColor="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            activeColor="text-red-500 bg-red-500/10"
+            hoverColor="hover:text-red-500 hover:bg-red-500/10"
             tooltip={isLiked ? "Unlike" : "Like"}
             ariaLabel={isLiked ? "Unlike prompt" : "Like prompt"}
           />
         )}
 
-        {(actions || !isPublicView) && <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />}
+        {(actions || !isPublicView) && <div className="w-px h-4 bg-white/10 mx-1" />}
 
         {!isPublicView && actions && (
           <>
@@ -189,8 +195,8 @@ export default function PromptCard({
               isLoading={activeAction === 'toggle-public'}
               isActive={p.is_public || isPending}
               activeColor={isPending 
-                ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30" 
-                : "text-blue-500 bg-blue-50 dark:bg-blue-900/30"}
+                ? "text-amber-400 bg-amber-400/10" 
+                : "text-blue-400 bg-blue-400/10"}
               disabled={isPending}
               tooltip={isPending ? "Review in progress" : p.is_public ? "Make Private" : "Make Public"}
               ariaLabel={p.is_public ? "Make prompt private" : "Make prompt public"}
@@ -199,7 +205,7 @@ export default function PromptCard({
               onClick={handleDelete}
               icon={<Trash2 size={16} />}
               isLoading={activeAction === 'delete'}
-              hoverColor="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+              hoverColor="hover:text-red-500 hover:bg-red-500/10"
               tooltip="Delete prompt"
               ariaLabel="Delete prompt"
             />
@@ -211,7 +217,7 @@ export default function PromptCard({
              onClick={handleRemix}
              icon={<Wand2 size={16} />}
              isLoading={activeAction === 'remix'}
-             hoverColor="hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+             hoverColor="hover:text-emerald-400 hover:bg-emerald-500/10"
              tooltip="Remix this prompt"
              ariaLabel="Remix this prompt"
            />
@@ -219,64 +225,47 @@ export default function PromptCard({
       </div>
 
       {/* 🟢 HEADER */}
-      <div className="mb-5 pr-10"> 
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="mb-8"> 
+        <div className="flex flex-wrap items-center gap-3 mb-4">
           {p.tags?.slice(0, 3).map((t) => (
-            <span key={t} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+            <span key={t} className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400 dark:text-blue-300 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
               #{t}
             </span>
           ))}
           
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-4 ml-auto">
             {likesCount > 0 && (
               <motion.span 
                 initial={false}
                 animate={{ scale: activeAction === 'like' ? [1, 1.2, 1] : 1 }}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500"
+                className="flex items-center gap-2 text-xs font-bold text-slate-400"
               >
-                <Heart size={12} className={isLiked ? "fill-red-400 text-red-400" : ""} />
+                <Heart size={14} className={isLiked ? "fill-red-500 text-red-500" : ""} />
                 {likesCount}
               </motion.span>
             )}
             {remixCount > 0 && (
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                <Wand2 size={12} />
+              <span className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                <Wand2 size={14} />
                 {remixCount}
               </span>
             )}
           </div>
-          
-          {!isPublicView && (
-             <div className="flex items-center">
-                {isPending ? (
-                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30 flex items-center gap-1">
-                     <Clock size={10} className="animate-pulse" /> Reviewing
-                   </span>
-                ) : (
-                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border transition-colors ${
-                     p.is_public 
-                      ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30' 
-                      : 'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800/50 dark:text-slate-500 dark:border-slate-800'
-                   }`}>
-                     {p.is_public ? 'Public' : 'Private'}
-                   </span>
-                )}
-             </div>
-          )}
         </div>
-        <h3 className={`font-black text-slate-800 dark:text-slate-100 tracking-tight leading-tight transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400 ${isWide ? 'text-2xl' : 'text-xl'}`}>
+
+        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.1] transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
           {p.title || "Untitled Prompt"}
         </h3>
       </div>
 
       {/* 🟢 CONTENT */}
-      <div className="flex-1 relative rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-100/50 dark:border-slate-800/50 group-hover:border-blue-100 dark:group-hover:border-blue-900/20 transition-all duration-300 overflow-hidden">
-        <ExpandableText text={p.content} isWide={isWide} variant="content" />
+      <div className="relative rounded-3xl bg-white/5 dark:bg-black/30 backdrop-blur-md border border-white/10 group-hover:border-blue-500/40 transition-all duration-500 overflow-hidden shadow-inner">
+        <ExpandableText text={p.content} isWide={false} variant="content" />
       </div>
 
       {/* 🟢 FOOTER */}
       {p.explanation && (
-         <div className="mt-5">
+         <div className="mt-8">
             <PromptReasoning text={p.explanation} variant="slate" />
          </div>
       )}

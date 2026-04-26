@@ -8,7 +8,8 @@ import toast from 'react-hot-toast'
 import { getUserVault } from '@/services/prompts'
 import { PromptInputSchema, checkRateLimit } from '@/lib/validation'
 import { usePromptFeed } from '@/hooks/usePromptFeed' 
-import { useAuth } from '@/hooks/useAuth' // 👈 Using the unified Auth Hook
+import { useAuth } from '@/hooks/useAuth'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   deletePromptAction, 
   refinePrompt, 
@@ -29,15 +30,17 @@ import Spotlight from '@/components/dashboard/Spotlight'
 export default function DashboardClient({ initialPublicPrompts }: DashboardClientProps) {
   const router = useRouter()
   
+  const queryClient = useQueryClient()
+  
   // --- 1. UNIFIED AUTH & DATA HOOK ---
-  // This replaces all the old useEffects and manual state loading
-  const { session, userPrompts, setUserPrompts, loading: authLoading } = useAuth(true)
+  const { session, userPrompts, loading: authLoading } = useAuth(true)
 
   // --- 2. LOCAL UI STATE ---
   const [input, setInput] = useState('')
   const [refined, setRefined] = useState<RefinedPrompt | null>(null)
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [parentId, setParentId] = useState<string | undefined>(undefined)
   
   // 🟢 HOOK: Feed Logic
   const feed = usePromptFeed(initialPublicPrompts)
@@ -76,6 +79,7 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
     }
     
     setInput(content)
+    setParentId(id) // Set as parent for versioning
     window.scrollTo({ top: 0, behavior: 'smooth' })
     // Toast is now handled in PromptCard for immediate feedback
     if (id) await trackRemixAction(id)
@@ -96,42 +100,90 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
     }
   }
 
-  const handleSave = async () => {
-    if (!session) return router.push('/login')
-    if (!refined || isAiLoading || isSaving) return 
+  // --- 4. MUTATIONS (Optimistic) ---
+  
+  const saveMutation = useMutation({
+    mutationFn: (data: RefinedPrompt) => savePromptAction(data, parentId),
+    onSuccess: () => {
+      toast.success(parentId ? "Version Saved!" : "Saved to Vault!", { icon: '💾' })
+      queryClient.invalidateQueries({ queryKey: ['vault', session?.user?.id] })
+    },
+    onError: () => toast.error("Failed to save")
+  })
 
-    try {
-      setIsSaving(true)
-      await savePromptAction(refined)
-      toast.success("Saved to Vault!", { icon: '💾' })
-      
-      // Refresh Data (Manual re-fetch to update the UI instantly)
-      const newVault = await getUserVault()
-      if (newVault) setUserPrompts(newVault)
-      
-    } catch (error: any) {
-      toast.error("Failed to save")
-    } finally {
-      setIsSaving(false)
+  const deleteMutation = useMutation({
+    mutationFn: deletePromptAction,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['vault', session?.user?.id] })
+      const previousVault = queryClient.getQueryData(['vault', session?.user?.id])
+      queryClient.setQueryData(['vault', session?.user?.id], (old: any) => old?.filter((p: any) => p.id !== id))
+      return { previousVault }
+    },
+    onSuccess: () => toast.success("Deleted"),
+    onError: (err, id, context) => {
+      queryClient.setQueryData(['vault', session?.user?.id], context?.previousVault)
+      toast.error("Failed to delete")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['vault', session?.user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
     }
+  })
+
+  const togglePublicMutation = useMutation({
+    mutationFn: ({ id, state }: { id: string, state: boolean }) => togglePromptPublicAction(id, state),
+    onMutate: async ({ id, state }) => {
+      // 1. Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['vault', session?.user?.id] })
+      await queryClient.cancelQueries({ queryKey: ['prompts'] })
+
+      // 2. Snapshot the previous value
+      const previousVault = queryClient.getQueryData(['vault', session?.user?.id])
+      const previousPrompts = queryClient.getQueryData(['prompts'])
+
+      // 3. Optimistically update the vault
+      queryClient.setQueryData(['vault', session?.user?.id], (old: any) => 
+        old?.map((p: any) => p.id === id ? { ...p, is_public: state, status: state ? 'approved' : p.status } : p)
+      )
+
+      return { previousVault, previousPrompts }
+    },
+    onError: (err, variables, context) => {
+      // Rollback
+      queryClient.setQueryData(['vault', session?.user?.id], context?.previousVault)
+      queryClient.setQueryData(['prompts'], context?.previousPrompts)
+      toast.error("Failed to update status")
+    },
+    onSuccess: (result) => {
+      toast.success(result.message)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['vault', session?.user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
+    }
+  })
+
+  const likeMutation = useMutation({
+    mutationFn: toggleLikeAction,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['prompts'] })
+      const previousPrompts = queryClient.getQueryData(['prompts'])
+      // Optimistic update for likes would be more complex due to infinite query structure
+      // For now we invalidate to keep it simple but "reactive"
+      return { previousPrompts }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
+    }
+  })
+
+  const handleSave = () => {
+    if (!session) return router.push('/login')
+    if (!refined || isAiLoading || saveMutation.isPending) return 
+    saveMutation.mutate(refined)
   }
 
   const handleDelete = (id: string) => {
-    const executeDelete = async () => {
-      try {
-        // 1. Call Server Action
-        await deletePromptAction(id)
-        
-        toast.success("Deleted")
-        
-        // 2. Update UI (Optimistic)
-        setUserPrompts(prev => prev.filter(p => p.id !== id))
-        feed.removePrompt(id)
-      } catch (error) {
-        toast.error("Failed to delete")
-      }
-    }
-
     toast((t) => (
       <ConfirmToast 
         t={t} 
@@ -139,99 +191,63 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
         message="This cannot be undone." 
         confirmLabel="Delete" 
         isDestructive
-        onConfirm={executeDelete}
+        onConfirm={() => deleteMutation.mutate(id)}
       />
     ), { ...toastOptions, id: 'delete-confirm' })
   }
 
   const handleTogglePublic = (id: string, currentStatus: boolean) => {
-    const executeUpdate = async () => {
-      const intendedState = !currentStatus
-      
-      // 1. Optimistic Update (Guessing success)
-      // We assume it toggles, but we might revert if it goes to queue
-      setUserPrompts(prev => prev.map(p => 
-        p.id === id ? { ...p, is_public: intendedState } : p
-      ))
-
-      try {
-        // 2. Call Server Action
-        const result = await togglePromptPublicAction(id, intendedState)
-        
-        // 3. Handle Result
-        if (result.status === 'pending') {
-          // 🟡 If it went to queue, it is technically NOT public yet
-          // So we revert the "Public" badge in the UI
-          setUserPrompts(prev => prev.map(p => 
-            p.id === id ? { ...p, is_public: false, status: 'pending' } : p
-          ))
-          toast.success("Submitted for Review", { icon: '🛡️' })
-        } else {
-          // 🟢 Published or Private
-          toast.success(result.message)
-          if (result.status === 'private') feed.removePrompt(id)
-        }
-
-      } catch (error) {
-        // 4. Error Rollback
-        setUserPrompts(prev => prev.map(p => 
-          p.id === id ? { ...p, is_public: currentStatus } : p
-        ))
-        toast.error("Failed to update status")
-      }
-    }
-
-    // Logic: Ask before making Public
+    const intendedState = !currentStatus
     if (!currentStatus) {
-        toast((t) => (
-            <ConfirmToast 
-              t={t} 
-              title="Make Public?" 
-              message="This prompt will be visible to everyone on the Community Feed." 
-              confirmLabel="Confirm Public" 
-              onConfirm={executeUpdate}
-            />
-          ), { ...toastOptions, position: 'bottom-center', id: 'public-confirm' })
-          return
+      toast((t) => (
+        <ConfirmToast 
+          t={t} 
+          title="Make Public?" 
+          message="This prompt will be visible to everyone on the Community Feed." 
+          confirmLabel="Confirm Public" 
+          onConfirm={() => togglePublicMutation.mutate({ id, state: intendedState })}
+        />
+      ), { ...toastOptions, position: 'bottom-center', id: 'public-confirm' })
+      return
     }
-
-    executeUpdate()
+    togglePublicMutation.mutate({ id, state: intendedState })
   }
 
   const handleLike = async (id: string) => {
     if (!session) {
       toast.error("Sign in to like prompts", { icon: '🔒' })
       router.push('/login')
-      throw new Error("Unauthorized")
+      return false
     }
-    return await toggleLikeAction(id)
+    return likeMutation.mutateAsync(id)
   }
 
   // --- 5. RENDER ---
   // Uses the loading state from useAuth hook
   if (authLoading) return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-transparent flex items-center justify-center">
       <div className="animate-spin w-8 h-8 border-4 border-blue-600 rounded-full border-t-transparent"/>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 transition-colors duration-300">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 p-4 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-12 pb-24">
         
-        <Navbar session={session} userPrompts={userPrompts} />
+        <Navbar session={session ?? null} userPrompts={userPrompts} />
         <Spotlight />
 
         <Workbench 
           input={input} setInput={setInput} refined={refined} 
-          loading={isAiLoading} isSaving={isSaving}
+          loading={isAiLoading} isSaving={saveMutation.isPending}
           onRefine={handleRefine} onSave={handleSave} isLoggedIn={!!session}
+          parentId={parentId} setParentId={setParentId}
         />
 
         <CommunityFeed
           prompts={feed.prompts}
           userPrompts={userPrompts}
-          session={session}
+          session={session ?? null}
           actions={{
             onRemix: handleRemix,
             onDelete: handleDelete,

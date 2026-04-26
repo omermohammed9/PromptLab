@@ -263,6 +263,7 @@ export async function togglePromptPublicAction(id: string, intendedState: boolea
 
 
 export async function toggleLikeAction(promptId: string) {
+  console.log('DEBUG: toggleLikeAction called', { promptId });
   try {
     const result = await toggleLike(promptId);
     // Note: We don't necessarily need revalidatePath here if we are using 
@@ -278,11 +279,12 @@ export async function toggleLikeAction(promptId: string) {
   }
 }
 
-export async function savePromptAction(prompt: RefinedPrompt) {
+export async function savePromptAction(prompt: RefinedPrompt, parentId?: string) {
+  console.log('DEBUG: savePromptAction called', { parentId });
   // All auth, sanitization, and DB logic is centralised in savePromptToVault.
   // This action is a thin HTTP/Action boundary that triggers revalidation
   // after the secure service call succeeds.
-  const saved = await savePromptToVault(prompt);
+  const saved = await savePromptToVault(prompt, parentId);
 
   revalidatePath('/dashboard');
 

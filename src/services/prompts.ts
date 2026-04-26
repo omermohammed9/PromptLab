@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { Prompt, RefinedPrompt } from '@/types/interface';
+import { ActionSchema } from '@/lib/validation';
 import sanitizeHtml from 'sanitize-html';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ export async function getPublicPrompts({
   page: number;
   tag?: string;
 }): Promise<Prompt[]> {
+  console.log('DEBUG: getPublicPrompts called', { page, tag });
   const supabase = await createClient();
 
   const from = page * PAGE_SIZE;
@@ -81,7 +83,7 @@ export async function getUserVault() {
 // 2. All user-supplied string fields are run through sanitize-html before
 //    they reach the database, preventing stored-XSS.
 // ─────────────────────────────────────────────────────────────────────────────
-export async function savePromptToVault(prompt: RefinedPrompt) {
+export async function savePromptToVault(prompt: RefinedPrompt, parentId?: string) {
   const supabase = await createClient();
 
   // 1. Resolve identity from the server-side session — never trust the caller.
@@ -103,7 +105,23 @@ export async function savePromptToVault(prompt: RefinedPrompt) {
     tags:        cleanTags,
     is_public:   false,   // Private by default
     status:      'pending' as const, // 🚦 Enters moderation queue
+    parent_id:   parentId || null,
+    version_number: 1,
   };
+
+  // 4. Handle Versioning Logic
+  if (parentId) {
+    // Fetch the highest version number in this lineage to increment it
+    const { data: latestVersion } = await supabase
+      .from('prompts')
+      .select('version_number')
+      .eq('parent_id', parentId)
+      .order('version_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    payload.version_number = (latestVersion?.version_number ?? 1) + 1;
+  }
 
   // 4. Insert
   const { data, error } = await supabase
@@ -144,6 +162,13 @@ export async function searchPublicPrompts(query: string) {
 export async function trackRemix(promptId: string) {
   const supabase = await createClient();
 
+  // 1. Secure identity resolution
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) throw new Error('Unauthorized: You must be logged in to remix.');
+
+  // 2. Validate Input
+  ActionSchema.parse({ id: promptId });
+
   const { error } = await supabase.rpc('increment_remix', {
     target_prompt_id: promptId,
   });
@@ -169,6 +194,9 @@ export async function toggleLike(promptId: string): Promise<boolean> {
   // 1. Resolve identity from the verified session — never trust the caller.
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) throw new Error('Unauthorized: You must be logged in to like a prompt.');
+
+  // 2. Validate Input
+  ActionSchema.parse({ id: promptId });
 
   // 2. Check whether this user has already liked the prompt.
   const { data: existingLike, error: selectError } = await supabase
@@ -210,4 +238,23 @@ export async function toggleLike(promptId: string): Promise<boolean> {
 
     return true; // new status: liked
   }
+}
+
+// G. Get Prompt Lineage (History)
+export async function getPromptLineage(rootId: string): Promise<Prompt[]> {
+  const supabase = await createClient();
+
+  // Fetch the root prompt AND all prompts that claim it as parent
+  const { data, error } = await supabase
+    .from('prompts')
+    .select('*, profiles(username, avatar_url)')
+    .or(`id.eq.${rootId},parent_id.eq.${rootId}`)
+    .order('version_number', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching lineage:', error);
+    throw error;
+  }
+
+  return (data ?? []) as Prompt[];
 }

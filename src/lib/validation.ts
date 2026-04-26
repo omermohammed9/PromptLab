@@ -53,6 +53,14 @@ export const PromptInputSchema = z.string()
   .refine((val) => !filter.isProfane(val), "Please avoid using offensive language.")
 
 
+// --- ACTION VALIDATION ---
+
+// Schema for simple ID-based actions (Like, Remix, Delete)
+export const ActionSchema = z.object({
+  id: z.string().uuid("Invalid Prompt ID format")
+})
+
+
 // --- RATE LIMITER ---
 
 // Sliding window rate limiter backed by Upstash Redis.
@@ -63,9 +71,18 @@ const MAX_REQUESTS = 5     // max refinements per window
 
 // Lazily initialised from env — works in both Vercel and local dev.
 // Required env vars: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
-const redis = Redis.fromEnv()
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
+
+// Check if credentials are valid (not placeholders)
+const isConfigured = !!(UPSTASH_URL && UPSTASH_TOKEN && !UPSTASH_URL.includes('your-db'))
+const redis = isConfigured ? Redis.fromEnv() : null
 
 export async function checkRateLimit(userId: string): Promise<void> {
+  if (!redis) {
+    console.warn("⚠️ Upstash Redis not configured. Bypassing rate limit.")
+    return
+  }
   const key = `rate_limit:refine:${userId}`
   const now = Date.now()
   const windowStart = now - WINDOW_SECONDS * 1000

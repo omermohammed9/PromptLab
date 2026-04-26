@@ -21,6 +21,10 @@ export interface Prompt {
   // 🛠️ NEW: Required for Admin & Moderation
   status: 'pending' | 'approved' | 'rejected' | 'flagged'
   
+  // 🕒 NEW: Versioning Support
+  parent_id?: string | null
+  version_number?: number
+  
   //  NOTE: DB does not have this column, so it is optional
   explanation?: string 
   
@@ -77,13 +81,13 @@ export interface CommunityFeedProps {
   userPrompts: Prompt[]
   session: UserSession | null
   actions: {
-    onRemix: (content: string, id: string) => void
+    onRemix: (content: string, id: string) => Promise<void>
     onDelete: (id: string, title: string) => void
     onTogglePublic: (id: string, current: boolean) => void
     onSearch: (query: string) => void
     onFilter: (tag: string) => void
     onLoadMore: () => void
-    onLike: (id: string) => Promise<any>
+    onLike: (id: string) => Promise<boolean>
   }
   state: {
     isLoading: boolean

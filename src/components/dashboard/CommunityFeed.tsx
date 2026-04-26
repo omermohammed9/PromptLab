@@ -129,23 +129,26 @@ export default function CommunityFeed({
           <FeedSkeleton />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min items-start">
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
               <AnimatePresence mode="popLayout">
                 {isEmpty ? (
-                  <EmptyState 
-                    viewMode={feed.viewMode} 
-                    searchQuery={feed.searchQuery} 
-                    hasPersonalPrompts={userPrompts.length > 0} 
-                  />
+                  <div className="col-span-full">
+                    <EmptyState 
+                      viewMode={feed.viewMode} 
+                      searchQuery={feed.searchQuery} 
+                      hasPersonalPrompts={userPrompts.length > 0} 
+                    />
+                  </div>
                 ) : (
                   feed.displayList.map((p, index) => (
-                    <PromptCard 
-                      key={p.id}
-                      prompt={p}
-                      index={index}
-                      isPublicView={feed.viewMode === 'public'}
-                      actions={actions}
-                    />
+                    <div key={p.id} className="break-inside-avoid-column mb-6">
+                      <PromptCard 
+                        prompt={p}
+                        index={index}
+                        isPublicView={feed.viewMode === 'public'}
+                        actions={actions}
+                      />
+                    </div>
                   ))
                 )}
               </AnimatePresence>

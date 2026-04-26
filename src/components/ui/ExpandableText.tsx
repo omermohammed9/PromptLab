@@ -29,7 +29,7 @@ const ExpandableText = ({ text, variant = 'content', isWide = false }: { text: s
       ref={elementRef}
       onClick={handleToggle}
       initial={false}
-      className={`group/text relative cursor-pointer ${isFooter ? 'flex items-start gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 opacity-80 hover:opacity-100 transition-opacity' : 'flex-1'}`}
+      className={`group/text relative cursor-pointer ${isFooter ? 'flex items-start gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 opacity-80 hover:opacity-100 transition-opacity' : ''}`}
     >
       {isFooter && <Tag size={12} className="mt-0.5 shrink-0 text-blue-500 dark:text-blue-400" />}
 
