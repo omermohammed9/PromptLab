@@ -47,11 +47,11 @@ export const GenealogyTree: React.FC<GenealogyTreeProps> = ({ lineage, currentPr
                 <User className="w-3 h-3" />
                 <span>{prompt.profiles?.username || 'Unknown'}</span>
                 <span>•</span>
-                <span>{formatDistanceToNow(new Date(prompt.created_at || Date.now()))} ago</span>
+                <span>{prompt.created_at ? formatDistanceToNow(new Date(prompt.created_at)) : 'Just now'} ago</span>
               </div>
 
               {prompt.id === currentPromptId && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-lg">
+                <div className="absolute -top-3 inset-x-0 mx-auto w-fit bg-blue-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-lg">
                   Current
                 </div>
               )}

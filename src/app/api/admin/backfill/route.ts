@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getEmbedding } from '@/lib/ai/embeddings';
+import { requireAdmin } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const supabase = await createClient();
 
-  // 1. SECURITY: Verify Admin Status
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+  // 1. SECURITY: Verify Admin Status (Role + IP)
+  try {
+    await requireAdmin(supabase);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || "Forbidden" }, 
+      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+    );
   }
 
   // 2. FETCH: Get prompts without embeddings

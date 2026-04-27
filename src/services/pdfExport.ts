@@ -5,7 +5,7 @@ type PDFTemplate = 'minimalist' | 'modern-dark' | 'classic-script';
 
 export const exportToPDF = (refined: RefinedPrompt, template: PDFTemplate = 'minimalist') => {
   const doc = new jsPDF();
-  const { refined_prompt, explanation, tags, title } = refined;
+  const { refined_prompt, explanation, title } = refined;
   const fileName = `${title || 'refined-prompt'}.pdf`;
 
   if (template === 'minimalist') {

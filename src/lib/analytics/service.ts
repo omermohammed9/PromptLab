@@ -1,7 +1,7 @@
 import { supabaseclient } from '@/lib/supabase/client'
 import { getDeviceId, getBrowserFingerprint, getMarketingAttribution } from './collector'
 
-export const trackEvent = async (eventName: string, metadata: any = {}) => {
+export const trackEvent = async (eventName: string, metadata: Record<string, unknown> = {}) => {
     try {
       const sessionId = getDeviceId()
       const fingerprint = getBrowserFingerprint()

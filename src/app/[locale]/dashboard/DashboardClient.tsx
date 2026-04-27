@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
+import { useLocale } from 'next-intl'
 import toast from 'react-hot-toast' 
 
 // Services & Hooks
@@ -16,11 +17,12 @@ import {
   savePromptAction, 
   togglePromptPublicAction, 
   toggleLikeAction,
-  trackRemixAction
+  trackRemixAction,
+  reportPromptAction
 } from './action'
 
 // Types & UI
-import { DashboardClientProps, RefinedPrompt } from '@/types/interface'
+import { DashboardClientProps, RefinedPrompt, Prompt } from '@/types/interface'
 import { ConfirmToast } from '@/components/ui/ConfirmToast' 
 import Navbar from '@/components/Navbar'
 import CommunityFeed from '@/components/dashboard/CommunityFeed'
@@ -94,8 +96,9 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
       setIsAiLoading(true)
       const data = await refinePrompt(validInput)
       setRefined(data)
-    } catch (error: any) {
-      toast.error(error.message || "Validation failed")
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      toast.error(err.message || "Validation failed")
     } finally {
       setIsAiLoading(false)
     }
@@ -117,7 +120,7 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['vault', session?.user?.id] })
       const previousVault = queryClient.getQueryData(['vault', session?.user?.id])
-      queryClient.setQueryData(['vault', session?.user?.id], (old: any) => old?.filter((p: any) => p.id !== id))
+      queryClient.setQueryData(['vault', session?.user?.id], (old: Prompt[] | undefined) => old?.filter((p: Prompt) => p.id !== id))
       return { previousVault }
     },
     onSuccess: () => toast.success("Deleted"),
@@ -143,8 +146,8 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
       const previousPrompts = queryClient.getQueryData(['prompts'])
 
       // 3. Optimistically update the vault
-      queryClient.setQueryData(['vault', session?.user?.id], (old: any) => 
-        old?.map((p: any) => p.id === id ? { ...p, is_public: state, status: state ? 'approved' : p.status } : p)
+      queryClient.setQueryData(['vault', session?.user?.id], (old: Prompt[] | undefined) => 
+        old?.map((p: Prompt) => p.id === id ? { ...p, is_public: state, status: state ? 'approved' : p.status } : p)
       )
 
       return { previousVault, previousPrompts }
@@ -222,6 +225,15 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
     }
     return likeMutation.mutateAsync(id)
   }
+  
+  const handleReport = async (id: string, reason: string) => {
+    if (!session) {
+      toast.error("Sign in to report prompts")
+      router.push('/login')
+      return
+    }
+    await reportPromptAction(id, reason)
+  }
 
   // --- 5. RENDER ---
   // Uses the loading state from useAuth hook
@@ -265,7 +277,8 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
             onSearch: feed.search,   
             onFilter: feed.filter,   
             onLoadMore: feed.loadMore,
-            onLike: handleLike
+            onLike: handleLike,
+            onReport: handleReport
           }}
           state={{
             isLoading: feed.isLoading, 

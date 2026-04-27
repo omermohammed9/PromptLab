@@ -2,18 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams, origin, pathname } = new URL(request.url)
+  const locale = pathname.split('/')[1] || 'en'
   const code = searchParams.get('code')
-  let next = searchParams.get('next') ?? '/dashboard'
+  let next = searchParams.get('next') ?? `/${locale}/dashboard`
 
   // Open Redirect validation: ensure `next` is a local path
   if (!next.startsWith('/') || next.startsWith('//')) {
-    next = '/dashboard'
+    next = `/${locale}/dashboard`
   }
 
   // If no code, something is wrong, go to login
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=no-code`)
+    return NextResponse.redirect(`${origin}/${locale}/login?error=no-code`)
   }
 
   /* We don't create the response yet. 
@@ -58,5 +59,5 @@ export async function GET(request: NextRequest) {
 
   // 🔴 FAIL: Log the specific error for debugging
   console.error("Auth Exchange Error:", error.message)
-  return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+  return NextResponse.redirect(`${origin}/${locale}/login?error=auth-code-error`)
 }

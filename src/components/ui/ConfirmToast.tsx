@@ -1,7 +1,7 @@
 import { toast } from 'react-hot-toast'
 
 interface ConfirmToastProps {
-  t: any
+  t: { id: string; visible: boolean }
   title: string
   message: string
   confirmLabel: string
@@ -13,7 +13,7 @@ export const ConfirmToast = ({ t, title, message, confirmLabel, onConfirm, isDes
   <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 dark:ring-white/10`}>
     <div className="flex-1 p-4">
       <div className="flex items-start">
-        <div className="ml-3 flex-1">
+        <div className="ms-3 flex-1">
           <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{title}</p>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{message}</p>
           <div className="mt-3 flex gap-3">

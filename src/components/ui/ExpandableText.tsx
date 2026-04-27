@@ -52,7 +52,7 @@ const ExpandableText = ({ text, variant = 'content', isWide = false }: { text: s
 
       {/* Hover Hint */}
       {!isExpanded && !isFooter && (
-        <div className="absolute bottom-2 right-4 opacity-0 group-hover/text:opacity-100 transition-opacity delay-100">
+        <div className="absolute bottom-2 end-4 opacity-0 group-hover/text:opacity-100 transition-opacity delay-100">
            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider bg-white/90 dark:bg-black/90 px-2 py-1 rounded-full shadow-sm backdrop-blur-sm">
              Read More
            </span>

@@ -15,9 +15,9 @@ interface Particle {
 
 export default function ParticleBurst({ x, y, onComplete }: { x: number, y: number, onComplete: () => void }) {
   const [particles, setParticles] = useState<Particle[]>([]);
-  const colors = ['#f43f5e', '#fbbf24', '#3b82f6', '#10b981', '#a855f7'];
-
+  
   useEffect(() => {
+    const colors = ['#f43f5e', '#fbbf24', '#3b82f6', '#10b981', '#a855f7'];
     const newParticles: Particle[] = Array.from({ length: 20 }).map((_, i) => ({
       id: i,
       x,
@@ -28,6 +28,7 @@ export default function ParticleBurst({ x, y, onComplete }: { x: number, y: numb
       velocity: Math.random() * 10 + 5,
     }));
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticles(newParticles);
 
     const timer = setTimeout(() => {

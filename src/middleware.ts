@@ -1,9 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import createIntlMiddleware from 'next-intl/middleware'
+import { routing } from './i18n/routing'
+
+const intlMiddleware = createIntlMiddleware(routing)
 
 export async function middleware(request: NextRequest) {
-  // 1. Initialize Response
-  let response = NextResponse.next({
+  // 1. Handle i18n Routing
+  // The intlMiddleware handles locale detection and redirects (e.g. / -> /en)
+  const intlResponse = intlMiddleware(request)
+  
+  // If intlMiddleware wants to redirect (e.g. adding a locale prefix), return its response
+  // But we need to be careful not to break the Supabase logic if it's a redirect.
+  // Actually, next-intl usually returns a response with headers/cookies.
+  
+  // 2. Initialize Response (combining with intlResponse if it exists)
+  let response = intlResponse || NextResponse.next({
     request: { headers: request.headers },
   })
 
@@ -11,14 +23,20 @@ export async function middleware(request: NextRequest) {
   // If Supabase ignores the redirect URL and dumps the user on the homepage with a code,
   // we manually route them to the callback handler so they get logged in.
   const code = request.nextUrl.searchParams.get('code')
-  if (code && request.nextUrl.pathname === '/') {
-    const callbackUrl = new URL('/auth/callback', request.url)
+  const pathname = request.nextUrl.pathname
+  
+  // Adjusted for locale-based paths (e.g., /en or /ar)
+  const isHomepage = pathname === '/' || routing.locales.some(locale => pathname === `/${locale}`)
+  
+  if (code && isHomepage) {
+    const locale = pathname === '/' ? 'en' : pathname.split('/')[1]
+    const callbackUrl = new URL(`/${locale}/auth/callback`, request.url)
     callbackUrl.searchParams.set('code', code)
-    callbackUrl.searchParams.set('next', '/dashboard')
+    callbackUrl.searchParams.set('next', `/${locale}/dashboard`)
     return NextResponse.redirect(callbackUrl)
   }
 
-  // 2. Supabase Client Setup
+  // 3. Supabase Client Setup
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,7 +46,12 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           //  This line resets the response, so we must set headers AFTER this block
-          response = NextResponse.next({ request: { headers: request.headers } })
+          // We preserve the intlResponse headers if any
+          const newResponse = NextResponse.next({ request: { headers: request.headers } })
+          response.headers.forEach((value, key) => {
+            newResponse.headers.set(key, value)
+          })
+          response = newResponse
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
@@ -37,14 +60,27 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 3. Auth & Role Check
+  // 4. Auth & Role Check
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
+
+  // Helper to check path without locale prefix
+  const getPathWithoutLocale = (path: string) => {
+    const parts = path.split('/')
+    if (routing.locales.includes(parts[1] as any)) {
+      return '/' + parts.slice(2).join('/')
+    }
+    return path
+  }
+
+  const cleanPath = getPathWithoutLocale(path)
+  const localePrefix = path.split('/')[1]
+  const currentLocale = routing.locales.includes(localePrefix as any) ? localePrefix : 'en'
 
   let userProfile = null
 
   // Only fetch profile if user exists AND we are on a protected route
-  if (user && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {
+  if (user && (cleanPath.startsWith('/dashboard') || cleanPath.startsWith('/admin'))) {
     const { data } = await supabase
       .from('profiles')
       .select('is_banned, role')
@@ -63,32 +99,48 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // 4. Banned User Check 
+  // 5. Banned User Check 
   if (userProfile?.is_banned) {
     await supabase.auth.signOut()
-    return redirectWithCookies(new URL('/banned', request.url))
+    return redirectWithCookies(new URL(`/${currentLocale}/banned`, request.url))
   }
 
-  // 5. Protect Admin Routes 
-  if (path.startsWith('/admin')) {
-    if (!user) return redirectWithCookies(new URL('/login', request.url))
+  // 6. Protect Admin Routes 
+  if (cleanPath.startsWith('/admin')) {
+    // A. Role Check
+    if (!user) return redirectWithCookies(new URL(`/${currentLocale}/login`, request.url))
     if (userProfile?.role !== 'admin') {
-      return redirectWithCookies(new URL('/dashboard', request.url))
+      return redirectWithCookies(new URL(`/${currentLocale}/dashboard`, request.url))
+    }
+
+    // B. IP Whitelist Check (Enterprise Security)
+    const whitelist = process.env.ADMIN_IP_WHITELIST
+    if (whitelist) {
+      const allowedIps = whitelist.split(',').map(ip => ip.trim())
+      const requesterIp = (request as any).ip || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown'
+      
+      const isAllowed = allowedIps.includes(requesterIp) || 
+                       (requesterIp === '127.0.0.1' && allowedIps.includes('::1')) ||
+                       (process.env.NODE_ENV === 'development')
+
+      if (!isAllowed) {
+        console.warn(`Blocked admin access to ${path} from unauthorized IP: ${requesterIp}`)
+        return redirectWithCookies(new URL(`/${currentLocale}/dashboard`, request.url))
+      }
     }
   }
 
-  // 6. Protect Dashboard 🏠
-  if (path.startsWith('/dashboard') && !user) {
-    return redirectWithCookies(new URL('/login', request.url))
+  // 7. Protect Dashboard 🏠
+  if (cleanPath.startsWith('/dashboard') && !user) {
+    return redirectWithCookies(new URL(`/${currentLocale}/login`, request.url))
   }
 
-  // 7. Public Route Redirects
-  if (path === '/login' && user) {
-    return redirectWithCookies(new URL('/dashboard', request.url))
+  // 8. Public Route Redirects
+  if (cleanPath === '/login' && user) {
+    return redirectWithCookies(new URL(`/${currentLocale}/dashboard`, request.url))
   }
 
-  // 8. Apply Security Headers (The Iron Dome) 
-  // We apply these LAST to ensure they are not wiped out by Supabase auth logic
+  // 9. Apply Security Headers (The Iron Dome) 
   const isDev = process.env.NODE_ENV === 'development'
   const cspHeader = `
   default-src 'self';
@@ -122,14 +174,12 @@ const contentSecurityPolicyHeaderValue = cspHeader
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - auth (🟢 IMPORTANT: Exclude the auth folder from middleware logic)
-     * - Public images
-     */
-    '/((?!_next/static|_next/image|favicon.ico|auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Match all pathnames except for
+    // - /api (API routes)
+    // - /_next (Next.js internals)
+    // - /_static (inside /public)
+    // - /_vercel (Vercel internals)
+    // - Static files (e.g. /favicon.ico, /sitemap.xml, /robots.txt, etc.)
+    '/((?!api|_next|_static|_vercel|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

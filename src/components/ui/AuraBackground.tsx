@@ -1,8 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const VIBE_COLORS: Record<string, string> = {
   professional: '#6366f1', // Indigo
@@ -30,7 +28,7 @@ export default function AuraBackground() {
     <>
       <div 
         className="aura-bg" 
-        style={{ '--aura-color': auraColor } as any} 
+        style={{ '--aura-color': auraColor } as React.CSSProperties} 
       />
       <div className="bg-mesh" />
     </>

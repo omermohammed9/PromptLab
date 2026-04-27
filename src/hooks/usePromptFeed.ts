@@ -1,12 +1,12 @@
 import { getPublicPrompts, searchPublicPrompts, searchPromptsByVector } from '@/services/prompts'
 
 import { Prompt } from '@/types/interface'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState, useCallback, useMemo } from 'react'
 
 const PAGE_SIZE = 12
 
-export function usePromptFeed(initialPrompts: Prompt[]) {
+export function usePromptFeed(_initialPrompts: Prompt[]) {
   const [context, setContext] = useState<{ type: 'all' | 'tag' | 'search', value: string, mode?: 'keyword' | 'semantic' }>({ type: 'all', value: '', mode: 'keyword' })
 
 
@@ -70,6 +70,6 @@ export function usePromptFeed(initialPrompts: Prompt[]) {
     search,
     filter,
     loadMore: fetchNextPage,
-    removePrompt: (id: string) => {} // Handle via query client invalidation
+    removePrompt: (_id: string) => {} // Handle via query client invalidation
   }
 }

@@ -11,22 +11,30 @@ export class GeminiProvider extends BaseProvider {
 
   async generate(system: string, user: string): Promise<string | null> {
     if (!this.isActive) return null;
+    const startTime = Date.now();
+    let resultText: string | null = null;
+
     try {
-      // Use startChat() with explicit system and user role messages to match
-      // the standard interface contract (system prompt + user turn).
       const model = this.client.getGenerativeModel({
         model: "gemini-2.5-flash",
         systemInstruction: system,
       });
 
       const chat = model.startChat({
-        history: [], // No prior history for a fresh generation call.
+        history: [], 
       });
 
       const result = await chat.sendMessage(user);
-      return result.response.text();
+      resultText = result.response.text();
+      
+      // Record Success
+      await this.recordTelemetry(startTime, true, system + user, resultText);
+      
+      return resultText;
     } catch (e) {
-      this.logError(e); // throws AIProviderError — never returns null
+      // Record Failure
+      await this.recordTelemetry(startTime, false, system + user, null, e);
+      this.logError(e); 
     }
   }
 }

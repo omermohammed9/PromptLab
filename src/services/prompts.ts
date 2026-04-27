@@ -5,6 +5,7 @@ import { Prompt, RefinedPrompt } from '@/types/interface';
 import { ActionSchema } from '@/lib/validation';
 import sanitizeHtml from 'sanitize-html';
 import { getEmbedding } from '@/lib/ai/embeddings';
+import { moderationFlow } from '@/ai';
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -106,11 +107,24 @@ export async function savePromptToVault(prompt: RefinedPrompt, parentId?: string
     explanation: cleanExplanation,
     tags:        cleanTags,
     is_public:   false,   // Private by default
-    status:      'pending' as const, // 🚦 Enters moderation queue
+    status:      'pending' as 'pending' | 'flagged',
+    moderator_notes: '',
     parent_id:   parentId || null,
     version_number: 1,
     embedding:   [] as number[], // Placeholder
   };
+
+  // 3.1 AI Auto-Moderation Pre-Scan
+  try {
+    const moderation = await moderationFlow(cleanContent);
+    if (!moderation.isSafe) {
+      payload.status = 'flagged';
+      payload.moderator_notes = moderation.reason || 'AI Auto-flagged';
+    }
+  } catch (err) {
+    console.error("Auto-moderation failed:", err);
+    // Fallback to pending if AI scan fails
+  }
 
   // 3.5 Generate Embedding for Semantic Search
   try {

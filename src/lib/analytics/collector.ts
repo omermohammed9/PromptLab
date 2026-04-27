@@ -14,20 +14,28 @@ export const getDeviceId = (): string => {
   return id
 }
 
-// 2. Gather "Invisible" Data for ML Training
 export const getBrowserFingerprint = () => {
   if (typeof window === 'undefined') return {}
 
+  const nav = navigator as unknown as { 
+    userAgent: string; 
+    language: string; 
+    platform?: string; 
+    deviceMemory?: number; 
+    connection?: { effectiveType?: string };
+    hardwareConcurrency?: number;
+  }
+
   return {
-    user_agent: navigator.userAgent,
-    language: navigator.language,
+    user_agent: nav.userAgent,
+    language: nav.language,
     screen_resolution: `${window.screen.width}x${window.screen.height}`,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     referrer: document.referrer || 'direct',
-    platform: (navigator as any).platform || 'unknown',
-    cores: navigator.hardwareConcurrency,
-    memory_gb: (navigator as any).deviceMemory || 'unknown',
-    connection_type: (navigator as any).connection?.effectiveType || 'unknown',
+    platform: nav.platform || 'unknown',
+    cores: nav.hardwareConcurrency,
+    memory_gb: nav.deviceMemory || 'unknown',
+    connection_type: nav.connection?.effectiveType || 'unknown',
   }
 }
 

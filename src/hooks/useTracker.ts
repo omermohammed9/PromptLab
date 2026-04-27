@@ -17,7 +17,7 @@ export function useTracker() {
       })
       initRef.current = true
     }
-  }, [])
+  }, [pathname])
 
   // 2. Track Page Views (Every time URL changes)
   useEffect(() => {

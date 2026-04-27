@@ -2,6 +2,7 @@
 
 import { Lightbulb, Sparkles, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 interface PromptReasoningProps {
   text: string
@@ -9,6 +10,7 @@ interface PromptReasoningProps {
 }
 
 export default function PromptReasoning({ text, variant = 'blue' }: PromptReasoningProps) {
+  const isReducedMotion = useReducedMotion()
   if (!text) return null
 
   // 1. ✨ CLEANUP: Remove redundant prefixes from AI (e.g., "Logic: ...")
@@ -45,7 +47,7 @@ export default function PromptReasoning({ text, variant = 'blue' }: PromptReason
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 5 }}
+      initial={isReducedMotion ? { opacity: 0 } : { opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       // 2. ✨ TWEAK: Reduced p-4 to p-3 for a cleaner fit in Spotlight
       // Removed 'my-4' so the Parent component controls the spacing

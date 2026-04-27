@@ -12,11 +12,10 @@ import { RefinedPrompt, Prompt } from '@/types/interface'
 import PromptReasoning from './PromptReasoning'
 import { getPromptLineage } from '@/services/prompts'
 import VisualDiff from './VisualDiff'
-import { Columns, Split, FileDown } from 'lucide-react'
+import { Split, FileDown } from 'lucide-react'
 import { exportToPDF } from '@/services/pdfExport'
 import ParticleBurst from '@/components/ui/ParticleBurst'
 import { GenealogyTree } from './GenealogyTree'
-import { getLineageAction } from '@/app/dashboard/action'
 
 
 // ============================================================================
@@ -98,6 +97,7 @@ function useHistory(initialState: string) {
 const Typewriter = ({ text, speed = 10 }: { text: string, speed?: number }) => {
   const [display, setDisplay] = useState('')
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplay('')
     let i = 0
     const timer = setInterval(() => {
@@ -114,10 +114,13 @@ const Typewriter = ({ text, speed = 10 }: { text: string, speed?: number }) => {
   return <span className="whitespace-pre-wrap">{display}</span>
 }
 
+import { useTranslations } from 'next-intl'
+
 // ============================================================================
 // 4. SUB-COMPONENT: Variable Manager (Input Side)
 // ============================================================================
 const VariableManager = ({ variables, values, onChange, disabled }: { variables: string[], values: Record<string, string>, onChange: (k: string, v: string) => void, disabled?: boolean }) => {
+  const t = useTranslations('workbench')
   if (variables.length === 0) return null
 
   return (
@@ -128,12 +131,12 @@ const VariableManager = ({ variables, values, onChange, disabled }: { variables:
       className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-4"
     >
       <div className="flex items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        <Variable size={12} className="text-blue-500" /> Detected Variables
+        <Variable size={12} className="text-blue-500" /> {t('detected_variables')}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {variables.map((v: string) => (
           <div key={v} className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 select-none pointer-events-none transition-colors group-focus-within:text-blue-500">
+            <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 select-none pointer-events-none transition-colors group-focus-within:text-blue-500">
               {`{{`}
             </span>
             <input
@@ -142,9 +145,9 @@ const VariableManager = ({ variables, values, onChange, disabled }: { variables:
               value={values[v] || ''}
               disabled={disabled}
               onChange={(e) => onChange(v, e.target.value)}
-              className="w-full pl-8 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full ps-8 pe-8 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 select-none pointer-events-none transition-colors group-focus-within:text-blue-500">
+            <span className="absolute end-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 select-none pointer-events-none transition-colors group-focus-within:text-blue-500">
               {`}}`}
             </span>
           </div>
@@ -170,6 +173,7 @@ const WorkbenchOutput = ({
   onSave: () => void,
   isLoggedIn: boolean
 }) => {
+  const t = useTranslations('workbench')
   const [copied, setCopied] = useState(false)
   const [showPdfOptions, setShowPdfOptions] = useState(false)
   const [burst, setBurst] = useState<{ x: number, y: number } | null>(null)
@@ -224,13 +228,13 @@ const WorkbenchOutput = ({
             <div className="flex justify-between items-center px-6 py-5 bg-white/10 backdrop-blur-md border-b border-white/10">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Sparkles size={14} /> AI Optimized Result
+                  <Sparkles size={14} /> {t('ai_result')}
                 </span>
 
                 {isTemplate && (
                   <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                     <FileJson size={10} />
-                    TEMPLATE
+                    {t('template_label')}
                   </span>
                 )}
               </div>
@@ -251,7 +255,7 @@ const WorkbenchOutput = ({
                         initial={{ opacity: 0, y: 10, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                        className="absolute right-0 top-full mt-2 w-48 glass rounded-2xl p-2 z-50 shadow-2xl"
+                        className="absolute end-0 top-full mt-2 w-48 glass rounded-2xl p-2 z-50 shadow-2xl"
                       >
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 px-3">Choose Template</p>
                         {(['minimalist', 'modern-dark', 'classic-script'] as const).map((t) => (
@@ -261,7 +265,7 @@ const WorkbenchOutput = ({
                               exportToPDF(refined, t);
                               setShowPdfOptions(false);
                             }}
-                            className="w-full text-left px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors capitalize"
+                            className="w-full text-start px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors capitalize"
                           >
                             {t.replace('-', ' ')}
                           </button>
@@ -315,13 +319,13 @@ const WorkbenchOutput = ({
                   onSave();
                 }}
                 disabled={isSaving}
-                aria-label={isLoggedIn ? 'Save to Collection' : 'Login to Save'}
+                aria-label={isLoggedIn ? t('save_to_collection') : t('login_to_save')}
                 className={`
                   flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-3 rounded-2xl font-bold text-sm transition-all shadow-xl hover:shadow-2xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto justify-center
                 `}
               >
                 {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                {isLoggedIn ? (isSaving ? 'Saving...' : 'Save to Vault') : 'Login to Save'}
+                {isLoggedIn ? (isSaving ? t('saving') : t('save_to_vault')) : t('login_to_save')}
               </button>
             </div>
           </div>
@@ -359,7 +363,7 @@ export default function Workbench({
   parentId,
   setParentId
 }: WorkbenchProps) {
-
+  const t = useTranslations('workbench')
   const { state: input, setState: setInput, undo, redo, canUndo, canRedo, currentIndex } = useHistory(parentInput)
 
   const [variableValues, setVariableValues] = useState<Record<string, string>>({})
@@ -369,6 +373,39 @@ export default function Workbench({
   const [selectedVersionIndex, setSelectedVersionIndex] = useState<number | null>(null)
   const [compareVersionIndex, setCompareVersionIndex] = useState<number | null>(null)
   const [isGenealogyOpen, setIsGenealogyOpen] = useState(false)
+
+  const TEMPLATES = [
+    {
+      label: t('templates.refactor'),
+      icon: <Code size={14} />,
+      text: "Refactor the following code to be more readable, efficient, and follow DRY principles.\n\nCode:\n{{code_snippet}}"
+    },
+    {
+      label: t('templates.unit_tests'),
+      icon: <TestTube size={14} />,
+      text: "Write comprehensive unit tests for this {{language}} function using {{testing_framework}}.\n\nFunction:\n{{code}}"
+    },
+    {
+      label: t('templates.cold_email'),
+      icon: <Mail size={14} />,
+      text: "Draft a cold email to {{target_name}} from {{company_name}} pitching our new product {{product}}. Focus on solving {{pain_point}}."
+    },
+    {
+      label: t('templates.explain'),
+      icon: <BookOpen size={14} />,
+      text: "Explain {{complex_topic}} to a {{target_audience}} using a simple analogy involving {{analogy_subject}}."
+    },
+    {
+      label: t('templates.sql'),
+      icon: <Database size={14} />,
+      text: "Write a SQL query to {{goal}} for a table named {{table_name}} with columns {{columns}}."
+    },
+    {
+      label: t('templates.brainstorm'),
+      icon: <Lightbulb size={14} />,
+      text: "Generate 10 unique ideas for {{topic}}. Prioritize unconventional approaches."
+    }
+  ]
 
 
   // Fetch Lineage when parentId changes
@@ -381,6 +418,7 @@ export default function Workbench({
         }
       }).catch(console.error)
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLineage([])
       setSelectedVersionIndex(null)
     }
@@ -472,12 +510,12 @@ export default function Workbench({
               >
                 <RotateCw size={16} />
               </button>
-              {canUndo && <span className="text-[10px] text-slate-400 ml-2 font-black uppercase tracking-tighter hidden sm:flex items-center gap-1.5">                <History size={12} className="text-blue-500" /> v{currentIndex + 1}
+              {canUndo && <span className="text-[10px] text-slate-400 ms-2 font-black uppercase tracking-tighter hidden sm:flex items-center gap-1.5">                <History size={12} className="text-blue-500" /> v{currentIndex + 1}
               </span>}
               {lineage.length > 0 && (
                 <button
                   onClick={() => setIsGenealogyOpen(true)}
-                  className="p-2 rounded-xl text-slate-500 hover:text-purple-600 hover:bg-white dark:hover:bg-slate-800 transition-all active:scale-90 shadow-sm ml-1"
+                  className="p-2 rounded-xl text-slate-500 hover:text-purple-600 hover:bg-white dark:hover:bg-slate-800 transition-all active:scale-90 shadow-sm ms-1"
                   title="View Ancestry Tree"
                 >
                   <GitBranch size={16} />
@@ -487,11 +525,11 @@ export default function Workbench({
           </div>
 
 
-          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
             {lineage.length > 1 && selectedVersionIndex !== null && (
               <div className="hidden lg:flex items-center gap-4 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full">
                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest whitespace-nowrap">
-                  Time-Machine
+                  {t('time_machine')}
                 </span>
                 <input
                   type="range"
@@ -514,15 +552,15 @@ export default function Workbench({
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${isPreviewMode ? 'bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 shadow-inner' : 'bg-white text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}
               >
                 {isPreviewMode ? <Eye size={12} /> : <EyeOff size={12} />}
-                <span className="hidden sm:inline">{isPreviewMode ? 'Live Preview' : 'Preview'}</span>
+                <span className="hidden sm:inline">{isPreviewMode ? t('live_preview') : t('preview')}</span>
               </button>
             )}
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hidden sm:block">Workbench</div>
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hidden sm:block">{t('title')}</div>
             {parentId && (
               <button
                 onClick={() => setParentId?.(undefined)}
                 className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 rounded-lg transition-colors"
-                title="Clear Parent (Start New Lineage)"
+                title={t('clear_parent')}
               >
                 <RotateCcw size={14} />
               </button>
@@ -548,7 +586,7 @@ export default function Workbench({
           )}
 
           {!input && !isBusy && (
-            <div className="absolute bottom-6 left-6 right-6 flex gap-2 overflow-x-auto pb-4 scrollbar-hide z-20">
+            <div className="absolute bottom-6 inset-x-6 flex gap-2 overflow-x-auto pb-4 scrollbar-hide z-20">
               {TEMPLATES.map((t) => (
                 <button
                   key={t.label}
@@ -577,7 +615,7 @@ export default function Workbench({
         <div className="px-8 py-5 bg-white/5 flex justify-between items-center border-t border-white/10">
           <div className="flex items-center gap-4">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              {input.length} Characters
+              {input.length} {t('characters')}
             </span>
             {lineage.length > 1 && (
               <button
@@ -587,7 +625,7 @@ export default function Workbench({
                 }}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all"
               >
-                <Split size={12} /> A/B Compare
+                <Split size={12} /> {t('ab_compare')}
               </button>
             )}
           </div>
@@ -604,9 +642,9 @@ export default function Workbench({
             `}
           >
             {loading ? (
-              <><Loader2 className="animate-spin" size={16} /> Refining...</>
+              <><Loader2 className="animate-spin" size={16} /> {t('refining')}</>
             ) : (
-              <><Sparkles size={16} className="text-blue-500" /> Refine Prompt</>
+              <><Sparkles size={16} className="text-blue-500" /> {t('refine_prompt')}</>
             )}
           </button>
         </div>
@@ -651,15 +689,15 @@ export default function Workbench({
                     <Split size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">A/B Playground</h2>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Visual Diffing Engine</p>
+                    <h2 className="text-2xl font-black text-white">{t('ab_playground')}</h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('visual_diff_engine')}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsCompareMode(false)}
                   className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full font-bold transition-all"
                 >
-                  Exit Playground
+                  {t('exit_playground')}
                 </button>
               </div>
 
@@ -737,8 +775,8 @@ export default function Workbench({
                     <GitBranch size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white">Remix Genealogy</h2>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Visual Ancestry Tree</p>
+                    <h2 className="text-2xl font-black text-white">{t('remix_genealogy')}</h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('visual_ancestry_tree')}</p>
                   </div>
                 </div>
                 <button
@@ -755,7 +793,7 @@ export default function Workbench({
 
               <div className="p-6 bg-white/5 border-t border-white/10 text-center">
                 <p className="text-xs text-white/40 italic">
-                  This view shows the evolution of this prompt from its original version through all remixes and refinements.
+                  {t('genealogy_description')}
                 </p>
               </div>
             </motion.div>

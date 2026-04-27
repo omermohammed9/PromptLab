@@ -17,8 +17,9 @@ export async function getEmbedding(text: string): Promise<number[]> {
     const result = await embeddingModel.embedContent(text);
     const embedding = result.embedding;
     return embedding.values;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating embedding:", error);
-    throw new Error(`Embedding failed: ${error.message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Embedding failed: ${message}`);
   }
 }

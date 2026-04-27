@@ -68,6 +68,7 @@ export const ActionSchema = z.object({
 // Key scheme: rate_limit:refine:{userId}
 const WINDOW_SECONDS = 60  // 1-minute sliding window
 const MAX_REQUESTS = 5     // max refinements per window
+const MAX_DAILY_REQUESTS = 20 // max daily refinements
 
 // Lazily initialised from env — works in both Vercel and local dev.
 // Required env vars: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
@@ -83,6 +84,18 @@ export async function checkRateLimit(userId: string): Promise<void> {
     console.warn("⚠️ Upstash Redis not configured. Bypassing rate limit.")
     return
   }
+  
+  // 1. Check Daily Quota first
+  const today = new Date().toISOString().split('T')[0]
+  const dailyKey = `quota:refine:${userId}:${today}`
+  const dailyCountStr = await redis.get<string | number>(dailyKey)
+  const dailyCount = typeof dailyCountStr === 'number' ? dailyCountStr : parseInt(dailyCountStr || "0", 10)
+  
+  if (dailyCount >= MAX_DAILY_REQUESTS) {
+    throw new Error(`Daily limit exceeded. You have reached your ${MAX_DAILY_REQUESTS} AI refinements for today. Please try again tomorrow for fair usage.`)
+  }
+
+  // 2. Check Per-Minute Sliding Window
   const key = `rate_limit:refine:${userId}`
   const now = Date.now()
   const windowStart = now - WINDOW_SECONDS * 1000
@@ -120,8 +133,9 @@ export async function checkRateLimit(userId: string): Promise<void> {
         `Rate limit exceeded. You may refine up to ${MAX_REQUESTS} prompts per minute. Please wait and try again.`
       )
     }
-  } catch (error: any) {
-    if (error?.message?.includes('NOPERM')) {
+  } catch (error: unknown) {
+    const err = error as { message?: string }
+    if (err.message?.includes('NOPERM')) {
       console.warn("⚠️ Redis Read-Only token detected. Rate limiting is disabled. Please use a standard token for full functionality.")
       return
     }

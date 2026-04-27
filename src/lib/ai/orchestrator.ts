@@ -1,8 +1,7 @@
 import { BaseProvider, AIProviderError, parseAIResponse } from "./interface";
-import { GeminiProvider } from "./providers/google";
-import { DeepSeekProvider, Llama3Provider, QwenProvider } from "./providers/huggingface";
-import { OpenRouterProvider } from "./providers/openrouter";
-import { GroqProvider } from "./providers/groq";
+import { getAvailableProviders } from "./provider-list";
+import { getPublicSystemConfig } from "@/app/[locale]/admin/system-action";
+import { logAiUsage } from "@/services/analytics";
 
 const PROVIDER_TIMEOUT_MS = 10_000;
 
@@ -28,21 +27,29 @@ function generateWithTimeout(
   return Promise.race([generationPromise, timeoutPromise]);
 }
 
-export async function generateContent(systemPrompt: string, userPrompt: string) {
+export async function generateContent(
+  systemPrompt: string, 
+  userPrompt: string,
+  options: { userId?: string; endpoint?: string } = {}
+) {
   
   // 🟢 PRIORITY ORDER
-  // Defines which AI is called first.
-  const providers: BaseProvider[] = [
-    new DeepSeekProvider(),
-    new QwenProvider(),
-    new GeminiProvider(),
-    new Llama3Provider(),
-    new OpenRouterProvider(),
-    new GroqProvider(),
-  ];
+  // Fetch providers directly from our central list
+  const providers = getAvailableProviders();
 
-  // Filter out providers with missing API keys
-  const activeProviders = providers.filter(p => p.isActive);
+  // Fetch system config to check Kill-Switches
+  const config = await getPublicSystemConfig();
+
+  // Filter out providers with missing API keys and apply Kill-Switch logic
+  const activeProviders = providers.filter(p => {
+    if (!p.isActive) return false;
+    // Apply kill switches based on exact provider names
+    if (config.modelToggles[p.name] === false) {
+      return false;
+    }
+    
+    return true;
+  });
 
   if (activeProviders.length === 0) {
     throw new Error("⛔ No AI Providers configured. Check your .env file.");
@@ -61,11 +68,22 @@ export async function generateContent(systemPrompt: string, userPrompt: string) 
         const json = parseAIResponse(rawResult);
         if (json) {
           success = true;
+          const latency = Date.now() - start;
           console.log(JSON.stringify({
             provider: provider.name,
-            latency_ms: Date.now() - start,
+            latency_ms: latency,
             success,
           }));
+
+          // Log Success to Database
+          await logAiUsage({
+            userId: options.userId || null,
+            modelName: provider.name,
+            endpoint: options.endpoint || 'unknown',
+            status: 'success',
+            latencyMs: latency
+          });
+
           return json;
         }
       }
@@ -76,12 +94,23 @@ export async function generateContent(systemPrompt: string, userPrompt: string) 
       errorReason = e instanceof AIProviderError ? e.reason : "invalid_response";
     } finally {
       if (!success) {
+        const latency = Date.now() - start;
         console.log(JSON.stringify({
           provider: provider.name,
-          latency_ms: Date.now() - start,
+          latency_ms: latency,
           success: false,
           error_reason: errorReason,
         }));
+
+        // Log Failure to Database
+        await logAiUsage({
+          userId: options.userId || null,
+          modelName: provider.name,
+          endpoint: options.endpoint || 'unknown',
+          status: 'failure',
+          errorType: errorReason,
+          latencyMs: latency
+        });
       }
     }
   }

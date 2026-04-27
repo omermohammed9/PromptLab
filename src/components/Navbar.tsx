@@ -1,26 +1,35 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
+import { Link } from '@/i18n/routing'
 import Image from 'next/image'
 import { 
   Download, LogIn, LogOut, 
   ChevronDown 
 } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import LocaleSwitcher from '@/components/ui/LocaleSwitcher'
 import { NavbarProps } from '@/types/interface'
 import toast from 'react-hot-toast'
 import { exportVaultToJSON } from '@/utils/exportHelper'
 import { useLogout } from '@/hooks/useLogout'
+import { useTranslations } from 'next-intl'
 
 export default function Navbar({ session, userPrompts }: NavbarProps) {
+  const t = useTranslations('common');
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   
   const { handleLogout } = useLogout() 
   
   // Safe cast for User Metadata
-  const user = session?.user as any
+  const user = session?.user as { 
+    email?: string;
+    user_metadata?: { 
+      avatar_url?: string; 
+      full_name?: string 
+    } 
+  }
   const avatarUrl = user?.user_metadata?.avatar_url
   const email = user?.email
   const initial = email ? email[0].toUpperCase() : 'U'
@@ -71,12 +80,13 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
             P
           </div>
           <h1 className="text-lg md:text-xl font-extrabold text-slate-800 dark:text-white tracking-tight">
-            Prompt Lab.
+            {t('title')}
           </h1>
         </Link>
         
         {/* Actions */}
         <div className="flex items-center gap-2 md:gap-4">
+          <LocaleSwitcher />
           <ThemeToggle />
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden md:block" />
 
@@ -86,7 +96,7 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
               {/* Trigger */}
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
+                className="flex items-center gap-2 ps-1 pe-2 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
               >
                 {avatarUrl ? (
                   <Image src={avatarUrl} alt="User" width={32} height={32} className="rounded-full border border-slate-200 dark:border-slate-700" />
@@ -100,7 +110,7 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
 
               {/* Dropdown */}
               {isMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/50 overflow-hidden transform origin-top-right transition-all animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full end-0 mt-2 w-64 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-black/50 overflow-hidden transform origin-top-end transition-all animate-in fade-in zoom-in-95 duration-200">
                   
                   {/* Header */}
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
@@ -133,7 +143,7 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-medium"
                     >
                         <LogOut size={16} />
-                        Sign Out
+                        {t('logout')}
                     </button>
                   </div>
                 </div>
@@ -145,7 +155,7 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 active:scale-95"
             >
               <LogIn size={16} /> 
-              <span className="hidden xs:inline">Login</span>
+              <span className="hidden xs:inline">{t('login')}</span>
             </Link>
           )}
         </div>

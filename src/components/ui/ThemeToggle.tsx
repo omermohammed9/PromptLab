@@ -3,27 +3,29 @@
 import { useTheme } from 'next-themes'
 import { Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 export default function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
+  const t = useTranslations('common')
   const [mounted, setMounted] = useState(false)
+  const isReducedMotion = useReducedMotion()
 
-  // 1. Avoid Hydration Mismatch (wait until client loads)
   useEffect(() => setMounted(true), [])
 
   if (!mounted) {
-    // Return a placeholder with the same dimensions to prevent layout shift
     return <div className="w-10 h-10" />
   }
 
-  // 2. Logic: Check 'resolvedTheme' to handle 'system' preference correctly
   const isDark = resolvedTheme === 'dark'
 
   return (
     <button 
       onClick={() => setTheme(isDark ? 'light' : 'dark')} 
-      className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-yellow-400 transition-all hover:scale-110 active:scale-95 border border-slate-200 dark:border-slate-700"
-      title="Toggle Dark Mode"
+      className={`p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-yellow-400 transition-all border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isReducedMotion ? 'hover:scale-110 active:scale-95' : ''}`}
+      title={t('toggle_theme')}
+      aria-label={t('toggle_theme')}
     >
       {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>

@@ -9,11 +9,16 @@ interface UsageGaugeProps {
   userId: string;
 }
 
+import { useTranslations } from 'next-intl';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+
 export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
+  const t = useTranslations('usage');
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const isReducedMotion = useReducedMotion();
 
-  const fetchStats = async () => {
+  const fetchStats = React.useCallback(async () => {
     try {
       const data = await getUserUsageStats(userId);
       setStats(data);
@@ -22,14 +27,13 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchStats();
-    // Refresh every 30 seconds
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [userId, fetchStats]);
 
   if (loading || !stats) {
     return (
@@ -45,9 +49,14 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className="relative p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl glassmorphism flex flex-col items-center justify-center overflow-hidden group"
+      role="progressbar"
+      aria-valuenow={stats.count}
+      aria-valuemin={0}
+      aria-valuemax={stats.limit}
+      aria-label={t('quota_title')}
     >
       {/* Background Glow */}
       <div className={`absolute inset-0 opacity-10 transition-colors duration-1000 ${
@@ -92,7 +101,7 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
             {stats.remaining}
           </span>
           <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-            Left
+            {t('left')}
           </span>
         </div>
       </div>
@@ -104,15 +113,15 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
           ) : (
             <Zap className="w-3 h-3 text-blue-400" />
           )}
-          Refinement Quota
+          {t('quota_title')}
         </h4>
         <p className="text-[10px] text-white/30 font-medium">
-          {stats.count} of {stats.limit} used this minute
+          {t('used_of_limit', { count: stats.count, limit: stats.limit })}
         </p>
       </div>
 
       {/* Hover Status */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 end-4">
         <div className={`w-2 h-2 rounded-full animate-ping ${
           stats.percentUsed > 80 ? 'bg-red-500' : 'bg-green-500'
         }`} />

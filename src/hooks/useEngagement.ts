@@ -7,7 +7,7 @@ import { supabaseclient } from '@/lib/supabase/client'
 
 export function useEngagement() {
   const pathname = usePathname()
-  const startTime = useRef(Date.now())
+  const startTime = useRef(0)
   const maxScroll = useRef(0)
   const metricId = useRef<string | null>(null) // To update the same row
 

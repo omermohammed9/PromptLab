@@ -20,6 +20,7 @@ export interface Prompt {
   
   // 🛠️ NEW: Required for Admin & Moderation
   status: 'pending' | 'approved' | 'rejected' | 'flagged'
+  moderator_notes?: string | null
   
   // 🕒 NEW: Versioning Support
   parent_id?: string | null
@@ -74,6 +75,7 @@ export interface UserProfile {
     countryCode?: string;
     isp?: string; // We need this for the Earthlink badge
   }; 
+  moderator_notes?: string | null;
 }
 
 export interface CommunityFeedProps {
@@ -88,7 +90,9 @@ export interface CommunityFeedProps {
     onFilter: (tag: string) => void
     onLoadMore: () => void
     onLike: (id: string) => Promise<boolean>
+    onReport: (id: string, reason: string) => Promise<void>
   }
+
   state: {
     isLoading: boolean
     hasMore: boolean

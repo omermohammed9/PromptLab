@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Copy, Check, Globe, Lock, Trash2, Wand2, Clock, Heart, Loader2
+  Copy, Check, Globe, Lock, Trash2, Wand2, Clock, Heart, Loader2, Flag
 } from 'lucide-react'
 import { Prompt } from '@/types/interface'
 import ExpandableText from '@/components/ui/ExpandableText'
@@ -20,14 +20,14 @@ interface PromptCardProps {
     onDelete?: (id: string, title: string) => void
     onRemix?: (content: string, id: string) => Promise<void>
     onLike?: (id: string) => Promise<boolean>
+    onReport?: (id: string, reason: string) => Promise<void>
   }
 }
 
-type ActionType = 'like' | 'remix' | 'toggle-public' | 'delete' | 'copy' | null
+type ActionType = 'like' | 'remix' | 'toggle-public' | 'delete' | 'copy' | 'report' | null
 
 export default function PromptCard({ 
   prompt: p, 
-  index = 0, 
   isPublicView = true, 
   actions 
 }: PromptCardProps) {
@@ -41,8 +41,6 @@ export default function PromptCard({
   const [remixCount, setRemixCount] = useState(p.remix_count || 0)
   const [burst, setBurst] = useState<{ x: number, y: number } | null>(null)
   
-  // Logic to determine if card should span 2 columns (Mosaic effect)
-  const isWide = index % 7 === 0 || index % 7 === 4
   const isPending = p.status === 'pending'
   const isBusy = activeAction !== null || isPending
 
@@ -77,7 +75,7 @@ export default function PromptCard({
 
     try {
       await actions.onLike(p.id)
-    } catch (err) {
+    } catch (_err) {
       setIsLiked(prevIsLiked)
       setLikesCount(prevCount)
       toast.error("Failed to update like")
@@ -107,7 +105,7 @@ export default function PromptCard({
 
     try {
       await actions.onRemix(p.content, p.id)
-    } catch (err) {
+    } catch (_err) {
       setRemixCount(prev => Math.max(0, prev - 1))
       toast.error("Failed to track remix")
     } finally {
@@ -122,7 +120,7 @@ export default function PromptCard({
     setActiveAction('toggle-public')
     try {
       await actions.onTogglePublic(p.id, p.is_public)
-    } catch (err) {
+    } catch (_err) {
       // Error handled by parent
     } finally {
       setActiveAction(null)
@@ -136,8 +134,26 @@ export default function PromptCard({
     setActiveAction('delete')
     try {
       await actions.onDelete(p.id, p.title || "Untitled")
-    } catch (err) {
+    } catch (_err) {
       // Error handled by parent
+    } finally {
+      setActiveAction(null)
+    }
+  }
+
+  const handleReport = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!actions?.onReport || isBusy) return
+    
+    const reason = window.prompt("Reason for reporting this prompt?")
+    if (!reason) return
+
+    setActiveAction('report')
+    try {
+      await actions.onReport(p.id, reason)
+      toast.success("Report submitted. Thank you.")
+    } catch (_err) {
+      toast.error("Failed to submit report")
     } finally {
       setActiveAction(null)
     }
@@ -161,7 +177,7 @@ export default function PromptCard({
       {burst && <ParticleBurst x={burst.x} y={burst.y} onComplete={() => setBurst(null)} />}
       
       {/* 🟢 TOOLBAR */}
-      <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/10 dark:bg-black/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-2xl">
+      <div className="absolute top-6 end-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/10 dark:bg-black/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-2xl">
         
         <ActionButton 
           onClick={handleCopy}
@@ -222,6 +238,17 @@ export default function PromptCard({
              ariaLabel="Remix this prompt"
            />
         )}
+
+        {actions?.onReport && isPublicView && (
+          <ActionButton 
+            onClick={handleReport}
+            icon={<Flag size={16} />}
+            isLoading={activeAction === 'report'}
+            hoverColor="hover:text-amber-500 hover:bg-amber-500/10"
+            tooltip="Report this prompt"
+            ariaLabel="Report this prompt"
+          />
+        )}
       </div>
 
       {/* 🟢 HEADER */}
@@ -233,7 +260,7 @@ export default function PromptCard({
             </span>
           ))}
           
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-4 ms-auto">
             {likesCount > 0 && (
               <motion.span 
                 initial={false}

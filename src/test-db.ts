@@ -12,14 +12,14 @@ async function test() {
   
   const supabase = createClient(supabaseUrl, supabaseKey)
   try {
-    const { data, error } = await supabase.from('profiles').select('count').single()
+    const { error } = await supabase.from('profiles').select('count').single()
     if (error) {
       console.error('Profiles table error:', error.message)
     } else {
       console.log('Profiles table exists')
     }
     
-    const { data: prompts, error: promptsError } = await supabase.from('prompts').select('count').single()
+    const { error: promptsError } = await supabase.from('prompts').select('count').single()
     if (promptsError) {
       console.error('Prompts table error:', promptsError.message)
     } else {

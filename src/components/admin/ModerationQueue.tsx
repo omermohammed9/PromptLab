@@ -1,59 +1,78 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useState } from 'react'
 import { supabaseclient } from '@/lib/supabase/client'
-import { Check, X, Loader2, MessageSquare, AlertCircle } from 'lucide-react'
+import { Check, X, Loader2, MessageSquare, AlertCircle, Flag } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { PromptItem } from '@/types/types'
-import { moderatePromptAction } from '@/app/admin/action'
+import { moderatePromptAction, bulkApprovePromptsAction } from '@/app/[locale]/admin/action'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 export default function ModerationQueue() {
-  const [prompts, setPrompts] = useState<PromptItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const t = useTranslations('moderation')
+  const queryClient = useQueryClient()
   const [processingId, setProcessingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchPendingPrompts()
-  }, [])
-
-  const fetchPendingPrompts = async () => {
-    setLoading(true)
-    const { data, error } = await supabaseclient
-      .from('prompts')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-      .limit(10)
-
-    if (error) {
-      console.error("Error fetching prompts:", error)
-      toast.error("Failed to fetch queue")
-    } else if (data) {
-      setPrompts(data as PromptItem[])
+  const { data: prompts = [], isLoading } = useQuery({
+    queryKey: ['admin', 'pending-prompts'],
+    queryFn: async () => {
+      const { data, error } = await supabaseclient
+        .from('prompts')
+        .select('*')
+        .in('status', ['pending', 'flagged'])
+        .order('created_at', { ascending: true })
+        .limit(10)
+      
+      if (error) throw error
+      return data as PromptItem[]
     }
-    setLoading(false)
-  }
+  })
 
-  const handleModeration = async (id: string, decision: 'approved' | 'rejected') => {
-    if (processingId) return
-    
-    setProcessingId(id)
-    try {
-      await moderatePromptAction(id, decision)
-      // Remove from UI after success
-      setPrompts(current => current.filter(p => p.id !== id))
-      toast.success(decision === 'approved' ? "Prompt Published ✅" : "Prompt Rejected 🚫")
-    } catch (error) {
-      toast.error("Failed to update status")
-    } finally {
+  const moderationMutation = useMutation({
+    mutationFn: ({ id, decision }: { id: string, decision: 'approved' | 'rejected' }) => 
+      moderatePromptAction(id, decision),
+    onMutate: ({ id }) => {
+      setProcessingId(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'pending-prompts'] })
+      toast.success(t('moderation_success'))
+    },
+    onError: () => {
+      toast.error(t('update_failed'))
+    },
+    onSettled: () => {
       setProcessingId(null)
     }
+  })
+
+  const bulkApproveMutation = useMutation({
+    mutationFn: bulkApprovePromptsAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'pending-prompts'] })
+      toast.success(t('all_approved'))
+    },
+    onError: () => {
+      toast.error(t('bulk_failed'))
+    }
+  })
+
+  const handleModeration = (id: string, decision: 'approved' | 'rejected') => {
+    moderationMutation.mutate({ id, decision })
   }
 
-  if (loading) return (
+  const handleBulkApprove = () => {
+    if (confirm(t('bulk_approve_confirm'))) {
+      bulkApproveMutation.mutate()
+    }
+  }
+
+  if (isLoading) return (
     <div className="p-20 flex flex-col items-center justify-center text-slate-500 gap-4">
       <Loader2 className="animate-spin text-blue-500" size={32} />
-      <span className="text-sm font-bold uppercase tracking-widest animate-pulse">Scanning Queue...</span>
+      <span className="text-sm font-bold uppercase tracking-widest animate-pulse">{t('scanning_queue')}</span>
     </div>
   )
 
@@ -66,13 +85,33 @@ export default function ModerationQueue() {
       <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
         <Check className="text-emerald-500" size={32} />
       </div>
-      <p className="font-black text-xl text-slate-200 mb-2">Queue is Empty</p>
-      <p className="text-sm text-slate-500 text-center max-w-xs">All pending prompts have been reviewed. Great work!</p>
+      <p className="font-black text-xl text-slate-200 mb-2">{t('queue_empty')}</p>
+      <p className="text-sm text-slate-500 text-center max-w-xs">{t('reviewed_all')}</p>
     </motion.div>
   )
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+            <MessageSquare className="text-blue-500" size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-black text-white uppercase tracking-widest">{t('active_queue')}</p>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">{t('prompts_pending', { count: prompts.length })}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleBulkApprove}
+          disabled={bulkApproveMutation.isPending || prompts.length === 0}
+          className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-900/20 transition-all text-xs font-black uppercase tracking-widest disabled:opacity-50 disabled:grayscale"
+        >
+          {bulkApproveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+          {t('approve_all')}
+        </button>
+      </div>
+
       <AnimatePresence mode="popLayout">
         {prompts.map((prompt) => (
           <motion.div 
@@ -90,17 +129,29 @@ export default function ModerationQueue() {
                    <MessageSquare size={12} className="text-blue-500" />
                    ID: {prompt.id.slice(0,8)}
                  </span>
-                 <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5 uppercase tracking-widest">
-                   <AlertCircle size={12} /> Pending Review
-                 </span>
+                 {prompt.status === 'flagged' ? (
+                   <span className="text-[10px] font-black bg-red-500/10 text-red-500 px-3 py-1.5 rounded-full border border-red-500/20 flex items-center gap-1.5 uppercase tracking-widest">
+                     <Flag size={12} /> {t('ai_flagged')}
+                   </span>
+                 ) : (
+                   <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5 uppercase tracking-widest">
+                     <AlertCircle size={12} /> {t('pending_review')}
+                   </span>
+                 )}
               </div>
+
+              {prompt.moderator_notes && (
+                <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-red-400 text-[10px] font-bold uppercase tracking-wide">
+                  {t('ai_scan_result', { result: prompt.moderator_notes })}
+                </div>
+              )}
               
               <div className="p-5 bg-slate-950 rounded-2xl text-slate-300 text-base leading-relaxed border border-slate-800/50 font-medium selection:bg-blue-500/30">
                 {prompt.content}
               </div>
               
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                <Loader2 size={10} /> Submitted: {new Date(prompt.created_at).toLocaleString()}
+                <Loader2 size={10} /> {t('submitted', { date: new Date(prompt.created_at).toLocaleString() })}
               </div>
             </div>
             
@@ -112,7 +163,7 @@ export default function ModerationQueue() {
                 className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-950 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-2xl border border-slate-800 hover:border-red-500/30 transition-all text-xs font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingId === prompt.id ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
-                Reject
+                {t('reject')}
               </button>
               <button 
                 onClick={() => handleModeration(prompt.id, 'approved')}
@@ -121,7 +172,7 @@ export default function ModerationQueue() {
                 className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl shadow-lg shadow-blue-900/20 hover:shadow-blue-600/40 transition-all text-xs font-black uppercase tracking-widest active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingId === prompt.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Approve
+                {t('approve')}
               </button>
             </div>
           </motion.div>

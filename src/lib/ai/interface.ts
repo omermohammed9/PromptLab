@@ -1,4 +1,5 @@
 import { AIProvider } from "@/types/interface"; // Your existing interface
+import { logAITelemetry } from "./telemetry";
 
 // ─── Typed Provider Error ────────────────────────────────────────────────────
 export type AIProviderErrorReason =
@@ -22,6 +23,7 @@ export class AIProviderError extends Error {
 export abstract class BaseProvider implements AIProvider {
   abstract name: string;
   protected client: any;
+
   protected apiKey: string | undefined;
 
   constructor(envKeyName: string) {
@@ -38,7 +40,7 @@ export abstract class BaseProvider implements AIProvider {
    * Maps a raw caught error to a typed AIProviderError and throws it.
    * Callers should catch AIProviderError to inspect the reason discriminant.
    */
-  protected logError(error: any): never {
+  protected logError(error: unknown): never {
     let reason: AIProviderErrorReason = "invalid_response";
 
     if (error instanceof AIProviderError) {
@@ -58,10 +60,33 @@ export abstract class BaseProvider implements AIProvider {
 
     throw new AIProviderError(this.name, reason, msg);
   }
+
+  /**
+   * Helper to estimate tokens (approx 4 chars per token)
+   */
+  protected estimateTokens(text: string): number {
+    return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Helper to record metrics
+   */
+  protected async recordTelemetry(startTime: number, success: boolean, input: string, output?: string | null, error?: any) {
+    const latency = Date.now() - startTime;
+    const tokens = this.estimateTokens(input + (output || ""));
+    
+    await logAITelemetry({
+      provider: this.name,
+      latency,
+      tokens,
+      success,
+      error: error ? String(error) : undefined
+    });
+  }
 }
 
 // Shared Utility for cleaning JSON
-export function parseAIResponse(text: string | null): any {
+export function parseAIResponse(text: string | null): unknown {
   if (!text) return null;
   try {
     let clean = text.replace(/```json|```/g, '').trim();
@@ -71,7 +96,7 @@ export function parseAIResponse(text: string | null): any {
       clean = clean.substring(firstBrace, lastBrace + 1);
     }
     return JSON.parse(clean);
-  } catch (e) {
+  } catch (_e: unknown) {
     console.error("❌ JSON Parse Error. Raw text:", text);
     return null;
   }

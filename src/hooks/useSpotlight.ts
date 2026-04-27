@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseclient } from '@/lib/supabase/client'
-import { generateTip } from '@/app/dashboard/action' // 👈 This now handles DB saving!
+import { generateTip } from '@/app/[locale]/dashboard/action' // 👈 This now handles DB saving!
 import toast from 'react-hot-toast'
 
 const FALLBACK_TIP = {
@@ -9,11 +9,16 @@ const FALLBACK_TIP = {
   content: 'To get the best results from AI, assign a specific persona (e.g., "Act as a Senior React Engineer") and clearly define the desired output format.',
   explanation: 'Assigning a persona primes the AI context window with domain-specific vocabulary and patterns.',
   tags: ['basics', 'prompt-engineering'],
+  is_public: true,
+  user_id: 'system',
+  status: 'approved' as const,
   created_at: new Date().toISOString()
 }
 
+import { Prompt } from '@/types/interface'
+
 export function useSpotlight() {
-  const [tip, setTip] = useState<any>(null)
+  const [tip, setTip] = useState<Prompt | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -40,7 +45,7 @@ export function useSpotlight() {
     setLoading(true)
     try {
       // Fetch the single most recent public tip
-      let { data } = await supabaseclient
+      const { data } = await supabaseclient
         .from('prompts')
         .select('*')
         .eq('is_public', true)
@@ -50,7 +55,7 @@ export function useSpotlight() {
         .limit(1)
         .maybeSingle()
 
-      setTip(data || FALLBACK_TIP)
+      setTip(data || (FALLBACK_TIP as unknown as Prompt))
     } catch (e) {
       console.error("Tip fetch error", e)
       setTip(FALLBACK_TIP)
@@ -72,9 +77,10 @@ export function useSpotlight() {
         setTip(newTip)
         toast.success("New Tip Generated!")
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e)
-      toast.error(e.message || "Failed to generate tip")
+      const message = e instanceof Error ? e.message : "Failed to generate tip"
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -82,8 +88,11 @@ export function useSpotlight() {
 
   // Initialize
   useEffect(() => {
-    checkAdminStatus()
-    refreshTip()
+    const init = async () => {
+      await checkAdminStatus()
+      await refreshTip()
+    }
+    init()
   }, [checkAdminStatus, refreshTip])
 
   return {

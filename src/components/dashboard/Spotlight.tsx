@@ -4,8 +4,10 @@ import { useSpotlight } from '@/hooks/useSpotlight'
 import { RefreshCw, Sparkles, Lightbulb } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PromptReasoning from './PromptReasoning' 
+import { useTranslations } from 'next-intl'
 
 export default function Spotlight() {
+  const t = useTranslations('spotlight')
   const { tip, loading, isAdmin, generateNewTip } = useSpotlight()
   const displayId = tip?.id?.toString().slice(0,4) || '000'
 
@@ -30,10 +32,10 @@ export default function Spotlight() {
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-wide uppercase flex items-center gap-2">
-                Pro Tip <span className="text-amber-500">#{displayId}</span>
+                {t('pro_tip')} <span className="text-amber-500">#{displayId}</span>
               </h3>
               <p className="text-[10px] text-slate-500 font-mono">
-                 {loading ? "Updating..." : "AI-Generated • Live Update"}
+                 {loading ? t('updating') : t('ai_generated_live')}
               </p>
             </div>
           </div>
@@ -46,7 +48,7 @@ export default function Spotlight() {
               className="group/btn bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 text-slate-600 hover:text-amber-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border border-slate-200 dark:border-slate-700"
             >
               {loading ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}
-              <span>New</span>
+              <span>{t('new')}</span>
             </button>
           )}
         </div>
