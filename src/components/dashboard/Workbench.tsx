@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Save, Copy, Check, Sparkles, ArrowRight, RotateCcw, RotateCw,
   Code, Mail, Lightbulb, History, Variable, Eye, EyeOff,
-  FileJson, Database, BookOpen, TestTube, Loader2
+  FileJson, Database, BookOpen, TestTube, Loader2, GitBranch
 } from 'lucide-react'
+
 import { motion, AnimatePresence } from 'framer-motion'
 import { RefinedPrompt, Prompt } from '@/types/interface'
 import PromptReasoning from './PromptReasoning'
@@ -14,6 +15,9 @@ import VisualDiff from './VisualDiff'
 import { Columns, Split, FileDown } from 'lucide-react'
 import { exportToPDF } from '@/services/pdfExport'
 import ParticleBurst from '@/components/ui/ParticleBurst'
+import { GenealogyTree } from './GenealogyTree'
+import { getLineageAction } from '@/app/dashboard/action'
+
 
 // ============================================================================
 // 1. CONFIG: Expanded Templates Library
@@ -364,6 +368,8 @@ export default function Workbench({
   const [lineage, setLineage] = useState<Prompt[]>([])
   const [selectedVersionIndex, setSelectedVersionIndex] = useState<number | null>(null)
   const [compareVersionIndex, setCompareVersionIndex] = useState<number | null>(null)
+  const [isGenealogyOpen, setIsGenealogyOpen] = useState(false)
+
 
   // Fetch Lineage when parentId changes
   useEffect(() => {
@@ -466,9 +472,20 @@ export default function Workbench({
               >
                 <RotateCw size={16} />
               </button>
-              {canUndo && <span className="text-[10px] text-slate-400 ml-2 font-black uppercase tracking-tighter hidden sm:flex items-center gap-1.5"><History size={12} className="text-blue-500" /> v{currentIndex + 1}</span>}
+              {canUndo && <span className="text-[10px] text-slate-400 ml-2 font-black uppercase tracking-tighter hidden sm:flex items-center gap-1.5">                <History size={12} className="text-blue-500" /> v{currentIndex + 1}
+              </span>}
+              {lineage.length > 0 && (
+                <button
+                  onClick={() => setIsGenealogyOpen(true)}
+                  className="p-2 rounded-xl text-slate-500 hover:text-purple-600 hover:bg-white dark:hover:bg-slate-800 transition-all active:scale-90 shadow-sm ml-1"
+                  title="View Ancestry Tree"
+                >
+                  <GitBranch size={16} />
+                </button>
+              )}
             </div>
           </div>
+
 
           <div className="flex items-center gap-3">
             {lineage.length > 1 && selectedVersionIndex !== null && (
@@ -695,6 +712,53 @@ export default function Workbench({
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GENEALOGY MODAL */}
+      <AnimatePresence>
+        {isGenealogyOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass rounded-[3rem] w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-8 border-b border-white/10 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-purple-600 text-white shadow-xl shadow-purple-600/20">
+                    <GitBranch size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white">Remix Genealogy</h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Visual Ancestry Tree</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsGenealogyOpen(false)}
+                  className="w-12 h-12 flex items-center justify-center hover:bg-white/10 rounded-full text-white transition-all"
+                >
+                  <RotateCcw className="w-6 h-6 rotate-45" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-white/5">
+                <GenealogyTree lineage={lineage} currentPromptId={parentId || ''} />
+              </div>
+
+              <div className="p-6 bg-white/5 border-t border-white/10 text-center">
+                <p className="text-xs text-white/40 italic">
+                  This view shows the evolution of this prompt from its original version through all remixes and refinements.
+                </p>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

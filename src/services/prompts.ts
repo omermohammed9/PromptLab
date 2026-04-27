@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Prompt, RefinedPrompt } from '@/types/interface';
 import { ActionSchema } from '@/lib/validation';
 import sanitizeHtml from 'sanitize-html';
+import { getEmbedding } from '@/lib/ai/embeddings';
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 12;
@@ -107,7 +109,18 @@ export async function savePromptToVault(prompt: RefinedPrompt, parentId?: string
     status:      'pending' as const, // 🚦 Enters moderation queue
     parent_id:   parentId || null,
     version_number: 1,
+    embedding:   [] as number[], // Placeholder
   };
+
+  // 3.5 Generate Embedding for Semantic Search
+  try {
+    const textToEmbed = `${cleanTitle} ${cleanContent} ${cleanExplanation}`;
+    payload.embedding = await getEmbedding(textToEmbed);
+  } catch (err) {
+    console.error("Failed to generate embedding during save:", err);
+    // Non-fatal, we still want to save the prompt
+  }
+
 
   // 4. Handle Versioning Logic
   if (parentId) {
@@ -254,6 +267,34 @@ export async function getPromptLineage(rootId: string): Promise<Prompt[]> {
   if (error) {
     console.error('Error fetching lineage:', error);
     throw error;
+  }
+
+  return (data ?? []) as Prompt[];
+}
+
+// H. Semantic Vector Search
+export async function searchPromptsByVector(query: string) {
+  const supabase = await createClient();
+
+  // 1. Generate embedding for the search query
+  const queryEmbedding = await getEmbedding(query);
+  if (queryEmbedding.length === 0) {
+    // Fallback to text search if embedding fails
+    return searchPublicPrompts(query);
+  }
+
+  // 2. Call the RPC function in Supabase
+  // We'll name it 'match_prompts' (standard Supabase pattern for vector search)
+  const { data, error } = await supabase.rpc('match_prompts', {
+    query_embedding: queryEmbedding,
+    match_threshold: 0.5, // Adjust similarity threshold as needed
+    match_count: 20,       // Number of results to return
+  });
+
+  if (error) {
+    console.error('Vector search error:', error);
+    // Fallback to text search
+    return searchPublicPrompts(query);
   }
 
   return (data ?? []) as Prompt[];

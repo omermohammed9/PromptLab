@@ -26,6 +26,8 @@ import Navbar from '@/components/Navbar'
 import CommunityFeed from '@/components/dashboard/CommunityFeed'
 import Workbench from '@/components/dashboard/Workbench'
 import Spotlight from '@/components/dashboard/Spotlight'
+import { UsageGauge } from '@/components/dashboard/UsageGauge'
+
 
 export default function DashboardClient({ initialPublicPrompts }: DashboardClientProps) {
   const router = useRouter()
@@ -234,7 +236,16 @@ export default function DashboardClient({ initialPublicPrompts }: DashboardClien
       <div className="max-w-6xl mx-auto space-y-12 pb-24">
         
         <Navbar session={session ?? null} userPrompts={userPrompts} />
-        <Spotlight />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Spotlight />
+          </div>
+          <div className="lg:col-span-1">
+            {session?.user?.id && <UsageGauge userId={session.user.id} />}
+          </div>
+        </div>
+
 
         <Workbench 
           input={input} setInput={setInput} refined={refined} 

@@ -107,16 +107,24 @@ export async function checkRateLimit(userId: string): Promise<void> {
   // 4. Reset the TTL so the key auto-expires after inactivity
   pipeline.expire(key, WINDOW_SECONDS * 2)
 
-  const results = await pipeline.exec()
+  try {
+    const results = await pipeline.exec()
 
-  // zcard result is the 3rd command (index 2)
-  const requestCount = results[2] as number
+    // zcard result is the 3rd command (index 2)
+    const requestCount = results[2] as number
 
-  if (requestCount > MAX_REQUESTS) {
-    // Roll back the request we just added so it doesn't pollute the window
-    await redis.zrem(key, member)
-    throw new Error(
-      `Rate limit exceeded. You may refine up to ${MAX_REQUESTS} prompts per minute. Please wait and try again.`
-    )
+    if (requestCount > MAX_REQUESTS) {
+      // Roll back the request we just added so it doesn't pollute the window
+      await redis.zrem(key, member)
+      throw new Error(
+        `Rate limit exceeded. You may refine up to ${MAX_REQUESTS} prompts per minute. Please wait and try again.`
+      )
+    }
+  } catch (error: any) {
+    if (error?.message?.includes('NOPERM')) {
+      console.warn("⚠️ Redis Read-Only token detected. Rate limiting is disabled. Please use a standard token for full functionality.")
+      return
+    }
+    throw error
   }
 }

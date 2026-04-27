@@ -15,18 +15,21 @@ type ViewMode = 'public' | 'personal'
 function useFeedFilter(
   prompts: Prompt[], 
   userPrompts: Prompt[], 
-  onServerSearch: (q: string) => void
+  onServerSearch: (q: string, mode: 'keyword' | 'semantic') => void
 ) {
   const [viewMode, setViewMode] = useState<ViewMode>('public')
   const [selectedTag, setSelectedTag] = useState<string>('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchMode, setSearchMode] = useState<'keyword' | 'semantic'>('keyword')
+
 
   // Debounced Server Search (Only for Public view)
   useEffect(() => {
     if (viewMode === 'personal') return
-    const timeoutId = setTimeout(() => onServerSearch(searchQuery), 500)
+    const timeoutId = setTimeout(() => onServerSearch(searchQuery, searchMode), 500)
     return () => clearTimeout(timeoutId)
-  }, [searchQuery, viewMode, onServerSearch])
+  }, [searchQuery, searchMode, viewMode, onServerSearch])
+
 
   // Calculate Available Tags
   const activeTags = useMemo(() => {
@@ -63,10 +66,12 @@ function useFeedFilter(
     viewMode, setViewMode,
     selectedTag, setSelectedTag,
     searchQuery, setSearchQuery,
+    searchMode, setSearchMode,
     activeTags,
     displayList
   }
 }
+
 
 // --- 3. MAIN COMPONENT ---
 
@@ -108,9 +113,12 @@ export default function CommunityFeed({
         onModeChange={handleModeSwitch}
         searchQuery={feed.searchQuery}
         onSearchChange={feed.setSearchQuery}
+        searchMode={feed.searchMode}
+        onSearchModeChange={feed.setSearchMode}
         session={session}
         savedCount={userPrompts.length}
       />
+
 
       {/* 2. Tag Navigation */}
       {!isLocked && (
@@ -187,7 +195,20 @@ const TagScroller = ({ tags, selectedTag, onSelect }: { tags: string[], selected
   </div>
 )
 
-const HeaderControls = ({ viewMode, onModeChange, searchQuery, onSearchChange, session, savedCount }: any) => (
+interface HeaderControlsProps {
+  viewMode: ViewMode;
+  onModeChange: (mode: ViewMode) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  searchMode: 'keyword' | 'semantic';
+  onSearchModeChange: (mode: 'keyword' | 'semantic') => void;
+  session: UserSession | null;
+  savedCount: number;
+}
+
+const HeaderControls = ({ viewMode, onModeChange, searchQuery, onSearchChange, searchMode, onSearchModeChange, session, savedCount }: HeaderControlsProps) => (
+
+
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div>
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit mb-4 border border-slate-200 dark:border-slate-800">
@@ -217,20 +238,46 @@ const HeaderControls = ({ viewMode, onModeChange, searchQuery, onSearchChange, s
       </p>
     </div>
 
-    <div className="relative group w-full md:w-64">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-      <input 
-        type="text" 
-        placeholder={viewMode === 'public' ? "Search community..." : "Search my vault..."}
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
-      />
+    <div className="flex flex-col md:flex-row md:items-end gap-4 w-full md:w-auto">
+      <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start">
+        <button 
+          onClick={() => onSearchModeChange('keyword')}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${searchMode === 'keyword' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400'}`}
+        >
+          Keyword
+        </button>
+        <button 
+          onClick={() => onSearchModeChange('semantic')}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${searchMode === 'semantic' ? 'bg-white dark:bg-slate-800 text-purple-600 shadow-sm' : 'text-slate-400'}`}
+        >
+          <Wand2 size={12} /> Intent
+        </button>
+      </div>
+
+      <div className="relative group w-full md:w-64">
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${searchMode === 'semantic' ? 'text-purple-500' : 'text-slate-400'} group-focus-within:text-blue-500`} size={16} />
+        <input 
+          type="text" 
+          placeholder={searchMode === 'semantic' ? "Describe your intent..." : (viewMode === 'public' ? "Search community..." : "Search my vault...")}
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className={`w-full bg-white dark:bg-slate-900 border rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm ${searchMode === 'semantic' ? 'border-purple-500/30 ring-purple-500/10' : 'border-slate-200 dark:border-slate-800'}`}
+        />
+      </div>
     </div>
   </div>
 )
 
-const TabButton = ({ active, onClick, icon, label }: any) => (
+
+interface TabButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => (
+
   <button
     onClick={onClick}
     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${

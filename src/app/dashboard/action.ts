@@ -6,7 +6,8 @@ import { RefinedPrompt } from "@/types/interface";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/validation";
-import { savePromptToVault, toggleLike, trackRemix } from "@/services/prompts";
+import { savePromptToVault, toggleLike, trackRemix, searchPromptsByVector, getPromptLineage, searchPublicPrompts } from "@/services/prompts";
+
 
 // ... [Keep your cleanJsonOutput function exactly as is] ...
 function cleanJsonOutput(input: any): string {
@@ -302,3 +303,17 @@ export async function trackRemixAction(promptId: string) {
     // Non-fatal, we don't throw so UI isn't blocked
   }
 }
+
+export async function searchPromptsAction(query: string, mode: 'keyword' | 'semantic' = 'keyword') {
+  if (!query.trim()) return [];
+  
+  if (mode === 'semantic') {
+    return await searchPromptsByVector(query);
+  }
+  
+  return await searchPublicPrompts(query);
+}
+
+export async function getLineageAction(rootId: string) {
+  return await getPromptLineage(rootId);
+}

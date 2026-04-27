@@ -1,4 +1,5 @@
-import { getPublicPrompts, searchPublicPrompts } from '@/services/prompts'
+import { getPublicPrompts, searchPublicPrompts, searchPromptsByVector } from '@/services/prompts'
+
 import { Prompt } from '@/types/interface'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useState, useCallback, useMemo } from 'react'
@@ -6,7 +7,8 @@ import { useState, useCallback, useMemo } from 'react'
 const PAGE_SIZE = 12
 
 export function usePromptFeed(initialPrompts: Prompt[]) {
-  const [context, setContext] = useState<{ type: 'all' | 'tag' | 'search', value: string }>({ type: 'all', value: '' })
+  const [context, setContext] = useState<{ type: 'all' | 'tag' | 'search', value: string, mode?: 'keyword' | 'semantic' }>({ type: 'all', value: '', mode: 'keyword' })
+
 
   // 1. Core Feed Query
   const { 
@@ -19,8 +21,12 @@ export function usePromptFeed(initialPrompts: Prompt[]) {
     queryKey: ['prompts', context.type, context.value],
     queryFn: async ({ pageParam = 0 }) => {
       if (context.type === 'search') {
+        if (context.mode === 'semantic') {
+          return searchPromptsByVector(context.value)
+        }
         return searchPublicPrompts(context.value)
       }
+
       return getPublicPrompts({
         page: pageParam,
         tag: context.type === 'tag' ? context.value : undefined,
@@ -40,13 +46,14 @@ export function usePromptFeed(initialPrompts: Prompt[]) {
   }, [data])
 
   // 3. Actions
-  const search = useCallback((query: string) => {
+  const search = useCallback((query: string, mode: 'keyword' | 'semantic' = 'keyword') => {
     if (!query.trim()) {
-      setContext({ type: 'all', value: '' })
+      setContext({ type: 'all', value: '', mode })
     } else {
-      setContext({ type: 'search', value: query })
+      setContext({ type: 'search', value: query, mode })
     }
   }, [])
+
 
   const filter = useCallback((tag: string) => {
     if (tag === 'All') {
