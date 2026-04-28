@@ -7,8 +7,8 @@ import Providers from '@/components/Providers';
 import "../globals.css";
 import AnalyticsListener from "@/components/AnalyticsListener"
 import AuraBackground from "@/components/ui/AuraBackground";
-import SystemBanner from "@/components/ui/SystemBanner";
-import { getPublicSystemConfig } from "@/app/[locale]/admin/system-action";
+import { Suspense } from "react";
+import AsyncSystemBanner from "@/components/ui/AsyncSystemBanner";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -76,31 +76,29 @@ export default async function RootLayout({
   // side is the easiest way to get started
   const messages = await getMessages();
 
-  const systemConfig = await getPublicSystemConfig();
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`} suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
-          <AuraBackground />
-          <ThemeProvider>
-              <Providers>
-                <SkipToContent />
-                <SystemBanner 
-                  bannerText={systemConfig.globalBanner} 
-                  isMaintenance={systemConfig.maintenanceMode} 
-                />
-                <AdminSwitch />
-                <AnalyticsListener />
-                <Toaster position="bottom-center" />
-                <main id="main-content">
-                  {children}
-                </main>
-                <CookieConsent />
-              </Providers>
-          </ThemeProvider>
-        </NextIntlClientProvider>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}>
+        <ThemeProvider>
+          <NextIntlClientProvider messages={messages}>
+            <AuraBackground />
+            <Providers>
+              <SkipToContent />
+              <Suspense fallback={null}>
+                <AsyncSystemBanner />
+              </Suspense>
+              <AdminSwitch />
+              <AnalyticsListener />
+              <Toaster position="bottom-center" />
+              <main id="main-content">
+                {children}
+              </main>
+              <CookieConsent />
+            </Providers>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

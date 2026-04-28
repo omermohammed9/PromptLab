@@ -97,17 +97,17 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
 
         {/* Center Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black text-white">
+          <span className="text-3xl font-black text-slate-900 dark:text-white">
             {stats.remaining}
           </span>
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
             {t('left')}
           </span>
         </div>
       </div>
 
       <div className="mt-4 text-center">
-        <h4 className="text-xs font-black uppercase tracking-widest text-white/60 mb-1 flex items-center justify-center gap-2">
+        <h4 className="text-xs font-black uppercase tracking-widest text-slate-600 dark:text-white/60 mb-1 flex items-center justify-center gap-2">
           {stats.percentUsed > 80 ? (
             <ShieldAlert className="w-3 h-3 text-red-400" />
           ) : (
@@ -115,7 +115,7 @@ export const UsageGauge: React.FC<UsageGaugeProps> = ({ userId }) => {
           )}
           {t('quota_title')}
         </h4>
-        <p className="text-[10px] text-white/30 font-medium">
+        <p className="text-[10px] text-slate-500 dark:text-white/30 font-medium">
           {t('used_of_limit', { count: stats.count, limit: stats.limit })}
         </p>
       </div>

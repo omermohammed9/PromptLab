@@ -172,12 +172,13 @@ export default function PromptCard({
         stiffness: 260,
         damping: 20
       }}
-      className="group relative glass-card p-6 md:p-8 rounded-[2.5rem] transition-all duration-500 flex flex-col shadow-2xl"
+      className="group relative glass-card p-6 md:p-8 rounded-[2.5rem] transition-[transform,opacity] duration-500 flex flex-col shadow-2xl"
     >
       {burst && <ParticleBurst x={burst.x} y={burst.y} onComplete={() => setBurst(null)} />}
       
       {/* 🟢 TOOLBAR */}
-      <div className="absolute top-6 end-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/10 dark:bg-black/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-2xl">
+      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/40 dark:from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-[2.5rem] pointer-events-none z-10" />
+      <div className="absolute top-6 end-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 z-20 bg-white/90 dark:bg-black/70 backdrop-blur-xl p-1.5 rounded-2xl border border-white/20 shadow-2xl">
         
         <ActionButton 
           onClick={handleCopy}
@@ -255,7 +256,7 @@ export default function PromptCard({
       <div className="mb-8"> 
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {p.tags?.slice(0, 3).map((t) => (
-            <span key={t} className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400 dark:text-blue-300 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
+            <span key={t} className="relative z-0 text-[10px] font-black uppercase tracking-[0.15em] text-blue-400 dark:text-blue-300 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
               #{t}
             </span>
           ))}
@@ -286,7 +287,7 @@ export default function PromptCard({
       </div>
 
       {/* 🟢 CONTENT */}
-      <div className="relative rounded-3xl bg-white/5 dark:bg-black/30 backdrop-blur-md border border-white/10 group-hover:border-blue-500/40 transition-all duration-500 overflow-hidden shadow-inner">
+      <div className="relative rounded-3xl bg-white/5 dark:bg-black/30 backdrop-blur-md border border-white/10 group-hover:border-blue-500/40 transition-[border-color] duration-500 overflow-hidden shadow-inner">
         <ExpandableText text={p.content} isWide={false} variant="content" />
       </div>
 
@@ -329,7 +330,7 @@ const ActionButton = ({
     aria-label={ariaLabel}
     aria-disabled={disabled || isLoading}
     className={`
-      w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 active:scale-95 touch-manipulation
+      w-9 h-9 flex items-center justify-center rounded-xl transition-[transform,background-color,color] duration-300 active:scale-95 touch-manipulation
       ${isActive ? activeColor : `text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 ${hoverColor || ''}`}
       ${(disabled || isLoading) ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'}
     `}

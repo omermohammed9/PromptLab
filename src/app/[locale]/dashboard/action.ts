@@ -281,12 +281,6 @@ export async function toggleLikeAction(promptId: string) {
   console.log('DEBUG: toggleLikeAction called', { promptId });
   try {
     const result = await toggleLike(promptId);
-    // Note: We don't necessarily need revalidatePath here if we are using 
-    // optimistic UI, but it's good practice to ensure the server state matches.
-    // However, for high-frequency actions like 'Like', sometimes we skip it 
-    // to avoid layout shifts or extra fetches if the client already knows the state.
-    // In this case, let's keep it for data integrity.
-    revalidatePath('/dashboard');
     return result;
   } catch (error: unknown) {
     const err = error as { message?: string }
@@ -310,9 +304,6 @@ export async function savePromptAction(prompt: RefinedPrompt, parentId?: string)
 export async function trackRemixAction(promptId: string) {
   try {
     await trackRemix(promptId);
-    // We don't necessarily need revalidatePath here as we're doing optimistic UI
-    // but it ensures the counts are eventually consistent on next load.
-    revalidatePath('/dashboard');
   } catch (error: unknown) {
     const err = error as { message?: string }
     console.error("trackRemixAction Error:", err);

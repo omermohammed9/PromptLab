@@ -1,16 +1,29 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { supabaseclient } from '../../../lib/supabase/client'
-import { Shield, Ban, CheckCircle, Search, ArrowLeft, LogOut, Copy, MapPin, Globe, Radio, UserCog, ExternalLink } from 'lucide-react'
+import { Shield, Ban, CheckCircle, Search, ArrowLeft, LogOut, Copy, UserCog, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { globalSignOut } from '../../../utils/auth-helpers'
-import ModerationQueue from '../../../components/admin/ModerationQueue'
-import ReportsQueue from '../../../components/admin/ReportsQueue'
-import IntelligenceDashboard from '../../../components/admin/IntelligenceDashboard'
-import AnalyticsDashboard from '../../../components/admin/AnalyticsDashboard'
 import { MessageSquare, Flag, Users, BrainCircuit, Server, Activity } from 'lucide-react'
-import InfrastructureControl from '../../../components/admin/InfrastructureControl'
+
+// Lazy Load Heavy Dashboards
+const ModerationQueue = dynamic(() => import('../../../components/admin/ModerationQueue'), {
+    loading: () => <div className="h-40 animate-pulse bg-slate-900 rounded-xl" />
+})
+const ReportsQueue = dynamic(() => import('../../../components/admin/ReportsQueue'), {
+    loading: () => <div className="h-40 animate-pulse bg-slate-900 rounded-xl" />
+})
+const IntelligenceDashboard = dynamic(() => import('../../../components/admin/IntelligenceDashboard'), {
+    loading: () => <div className="h-40 animate-pulse bg-slate-900 rounded-xl" />
+})
+const AnalyticsDashboard = dynamic(() => import('../../../components/admin/AnalyticsDashboard'), {
+    loading: () => <div className="h-40 animate-pulse bg-slate-900 rounded-xl" />
+})
+const InfrastructureControl = dynamic(() => import('../../../components/admin/InfrastructureControl'), {
+    loading: () => <div className="h-40 animate-pulse bg-slate-900 rounded-xl" />
+})
 
 // Types
 import { UserProfile } from '../../../types/interface' 
@@ -34,46 +47,13 @@ export default function AdminDashboard() {
     const [totalCount, setTotalCount] = useState(0)
     const pageSize = 10
 
-    // 1. Security & Role Check
+    // Role check is now handled by the server-side layout.tsx
+    // We just need to fetch users if we are in the 'users' tab or on mount
     useEffect(() => {
-        let mounted = true
-
-        const initAdmin = async () => {
-            try {
-                const { data: { user } } = await supabaseclient.auth.getUser()
-                
-                if (!user) {
-                    if (mounted) router.replace('/login')
-                    return
-                }
-
-                const { data: profile } = await supabaseclient
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single()
-
-                // If not admin, kick them out gently using Router (no hard reload)
-                if (profile?.role !== 'admin') {
-                    toast.error(t('unauthorized'))
-                    if (mounted) router.replace('/dashboard') 
-                } else {
-                    // Log access only if confirmed admin
-                    // (Fire and forget - does not block UI)
-                    fetch('/api/auth/log-access', { method: 'POST' }).catch(() => {})
-                    
-                    if (mounted) fetchUsers()
-                }
-            } catch (error) {
-                console.error("Admin check failed", error)
-                if (mounted) router.replace('/dashboard')
-            }
-        }
-
-        initAdmin()
-
-        return () => { mounted = false }
-    }, [router, t])
+        fetchUsers()
+        // Log access (Fire and forget)
+        fetch('/api/auth/log-access', { method: 'POST' }).catch(() => {})
+    }, [page])
 
     useEffect(() => {
         fetchUsers()
@@ -358,8 +338,8 @@ export default function AdminDashboard() {
                                             {/* Column 3: Location & Activity */}
                                             <td className="p-5">
                                                 <div className="text-sm text-slate-300 mb-1.5 font-medium">
-                                                    {user.last_sign_in_at 
-                                                        ? new Date(user.last_sign_in_at).toLocaleDateString()
+                                                    {(user.last_login || user.last_sign_in_at) 
+                                                        ? new Date(user.last_login || user.last_sign_in_at!).toLocaleDateString()
                                                         : <span className="text-slate-600 italic text-xs">Never</span>
                                                     }
                                                 </div>

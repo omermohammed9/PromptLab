@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabaseclient } from '@/lib/supabase/client'
 import { generateTip } from '@/app/[locale]/dashboard/action' // 👈 This now handles DB saving!
 import toast from 'react-hot-toast'
@@ -21,11 +21,19 @@ export function useSpotlight() {
   const [tip, setTip] = useState<Prompt | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const isCheckingRef = useRef(false)
 
   // 1. Check Admin Status
   const checkAdminStatus = useCallback(async () => {
+    if (isCheckingRef.current) return
+    isCheckingRef.current = true
+    
     try {
-      const { data: { user } } = await supabaseclient.auth.getUser()
+      // Use getSession() instead of getUser() for a faster, less lock-intensive check
+      // getSession() is usually enough for client-side UI logic
+      const { data: { session } } = await supabaseclient.auth.getSession()
+      const user = session?.user
+
       if (user) {
         const { data: profile } = await supabaseclient
           .from('profiles')
@@ -36,7 +44,12 @@ export function useSpotlight() {
         if (profile?.role === 'admin') setIsAdmin(true)
       }
     } catch (e) {
-      console.error("Admin check failed", e)
+      // Ignore "lock stole" errors as they are non-critical false positives during navigation
+      if (!(e instanceof Error && e.message.includes('lock'))) {
+        console.error("Admin check failed", e)
+      }
+    } finally {
+      isCheckingRef.current = false
     }
   }, [])
 

@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useRouter } from '@/i18n/routing'
 import { useLocale } from 'next-intl'
@@ -23,12 +24,18 @@ import {
 
 // Types & UI
 import { DashboardClientProps, RefinedPrompt, Prompt } from '@/types/interface'
-import { ConfirmToast } from '@/components/ui/ConfirmToast' 
 import Navbar from '@/components/Navbar'
 import CommunityFeed from '@/components/dashboard/CommunityFeed'
 import Workbench from '@/components/dashboard/Workbench'
 import Spotlight from '@/components/dashboard/Spotlight'
-import { UsageGauge } from '@/components/dashboard/UsageGauge'
+
+// Lazy Load Non-Critical Components
+const UsageGauge = dynamic(() => import('@/components/dashboard/UsageGauge').then(mod => mod.UsageGauge), {
+  loading: () => <div className="h-20 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" />
+})
+const ConfirmToast = dynamic(() => import('@/components/ui/ConfirmToast').then(mod => mod.ConfirmToast), {
+  ssr: false
+})
 
 
 export default function DashboardClient({ initialPublicPrompts }: DashboardClientProps) {

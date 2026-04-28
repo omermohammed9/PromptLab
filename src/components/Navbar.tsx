@@ -71,7 +71,7 @@ export default function Navbar({ session, userPrompts }: NavbarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl transition-[background-color,border-color,backdrop-filter]">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between relative z-20">
         
         {/* Logo */}

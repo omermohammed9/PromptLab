@@ -3,7 +3,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 // Initialize Genkit with the Google AI plugin
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
 });
 
 export const moderationFlow = ai.defineFlow({
@@ -16,7 +16,7 @@ export const moderationFlow = ai.defineFlow({
   }),
 }, async (content) => {
   const response = await ai.generate({
-    model: googleAI.model('gemini-1.5-flash'),
+    model: googleAI.model('gemini-1.5-flash-latest'),
     system: `
       You are a content moderator for a prompt engineering platform.
       Analyze the provided prompt for NSFW content, toxicity, hate speech, or dangerous instructions.

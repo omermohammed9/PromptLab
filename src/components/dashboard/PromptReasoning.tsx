@@ -27,11 +27,11 @@ export default function PromptReasoning({ text, variant = 'blue' }: PromptReason
     },
     amber: {
       bg: 'bg-amber-50 dark:bg-amber-900/10',
-      border: 'border-amber-100 dark:border-amber-900/20',
-      iconColor: 'text-amber-500',
+      border: 'border-amber-200 dark:border-amber-900/20',
+      iconColor: 'text-amber-600 dark:text-amber-500',
       icon: <Lightbulb size={18} className="shrink-0 mt-0.5" />,
       label: 'Pro Tip Logic',
-      labelColor: 'text-amber-700 dark:text-amber-500'
+      labelColor: 'text-amber-800 dark:text-amber-400 font-extrabold'
     },
     slate: {
       bg: 'bg-slate-50 dark:bg-slate-800/50',

@@ -18,23 +18,25 @@ export function useAuth(requireAuth = true) {
 
     const initAuth = async () => {
       try {
-        // 1. Get User
+        // 1. Get Session first (faster, handles memory state)
+        const { data: { session: currentSession } } = await supabaseclient.auth.getSession()
+        
+        // 2. Get User (Required for security check)
         const { data: { user }, error } = await supabaseclient.auth.getUser()
         
-        // 2. Handle No User
+        // 3. Handle No User
         if (error || !user) {
           if (requireAuth) router.replace('/login')
           else setLoading(false)
           return
         }
 
-        // 3. Set Session
+        // 4. Set Session
         if (mounted) {
            setSession({ user: { id: user.id, email: user.email } } as UserSession)
         }
 
-        // 4. Parallel Fetching (Faster!)
-        // Run "Get Role" and "Get Vault" at the same time
+        // 5. Parallel Fetching (Faster!)
         const [profileRes, vaultRes] = await Promise.all([
           supabaseclient.from('profiles').select('role').eq('id', user.id).single(),
           getUserVault()
@@ -46,7 +48,10 @@ export function useAuth(requireAuth = true) {
         }
 
       } catch (e) {
-        console.error("Auth initialization failed", e)
+        // Ignore "lock stole" errors - they are non-fatal race conditions during locale switches
+        if (!(e instanceof Error && e.message.includes('lock'))) {
+          console.error("Auth initialization failed", e)
+        }
       } finally {
         if (mounted) setLoading(false)
       }

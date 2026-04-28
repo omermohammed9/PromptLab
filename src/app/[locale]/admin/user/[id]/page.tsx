@@ -108,7 +108,7 @@ export default function UserDetailPage({ params }: UserDetailPageProps) {
                                 </div>
                                 <div className="flex items-center gap-3 text-slate-400">
                                     <Calendar size={16} />
-                                    <span>Joined {new Date(profile.created_at).toLocaleDateString()}</span>
+                                    <span>Joined {new Date(profile.updated_at || profile.created_at!).toLocaleDateString()}</span>
                                 </div>
                                 {profile.location_data?.city && (
                                     <div className="flex items-center gap-3 text-slate-400">

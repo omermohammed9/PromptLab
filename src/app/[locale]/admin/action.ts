@@ -108,24 +108,24 @@ export async function fetchAdminUsersAction(page: number, pageSize: number = 10)
   const supabase = createClient();
   await requireAdmin(supabase);
 
-  // We attempt to use the RPC with pagination if it supports it, 
-  // or fall back to a manual range on the profiles table.
-  // Standard practice for this app seems to be RPC 'get_admin_users_list'.
-  
-  const { data, error } = await supabase.rpc('get_admin_users_list');
+  const start = page * pageSize;
+  const end = start + pageSize - 1;
+
+  // 1. Fetch Paginated Users
+  const { data: users, error, count } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact' })
+    .order('updated_at', { ascending: false }) // Fixed: profiles table uses updated_at, not created_at
+    .range(start, end);
 
   if (error) {
-    console.error("RPC Error:", error);
-    throw new Error("Failed to fetch users");
+    console.error("Fetch Users Error:", error.message, error.details, error.hint);
+    throw new Error(`Failed to fetch users: ${error.message}`);
   }
 
-  const users = data as UserProfile[];
-  const totalCount = users.length;
-  const paginatedUsers = users.slice(page * pageSize, (page + 1) * pageSize);
-
   return {
-    users: paginatedUsers,
-    totalCount
+    users: (users ?? []) as UserProfile[],
+    totalCount: count || 0
   };
 }
 
@@ -155,21 +155,28 @@ export async function getAdminAnalyticsAction() {
   const supabase = createClient();
   await requireAdmin(supabase);
 
-  // 1. Growth Metrics (User Registrations)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const isoThirtyDaysAgo = thirtyDaysAgo.toISOString();
+
+  // 1. Growth Metrics (User Registrations - last 30 days)
+  // Using updated_at as created_at is missing from profiles table
   const { data: registrationData } = await supabase
     .from('profiles')
-    .select('created_at');
+    .select('updated_at')
+    .gte('updated_at', isoThirtyDaysAgo);
 
   const registrationsByDate = (registrationData || []).reduce((acc: any, row: any) => {
-    const date = row.created_at.split('T')[0];
+    const date = row.updated_at.split('T')[0];
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {});
 
-  // 2. Activity Trends (Prompt Creations)
+  // 2. Activity Trends (Prompt Creations - last 30 days)
   const { data: promptData } = await supabase
     .from('prompts')
-    .select('created_at');
+    .select('created_at')
+    .gte('created_at', isoThirtyDaysAgo);
 
   const promptsByDate = (promptData || []).reduce((acc: any, row: any) => {
     const date = row.created_at.split('T')[0];
@@ -178,9 +185,12 @@ export async function getAdminAnalyticsAction() {
   }, {});
 
   // 3. Content Trends (Popular Tags)
+  // Since tags are an array, we still fetch them but limit to recent prompts to avoid memory issues
   const { data: tagData } = await supabase
     .from('prompts')
-    .select('tags');
+    .select('tags')
+    .order('created_at', { ascending: false })
+    .limit(1000); // Only look at the latest 1000 prompts for tags
 
   const tagFrequency = (tagData || []).reduce((acc: any, row: any) => {
     (row.tags || []).forEach((tag: string) => {

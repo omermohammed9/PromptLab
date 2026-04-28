@@ -50,13 +50,19 @@ Industry-standard legal protections and user transparency are missing.
 ### Phase 5.2: Accessibility & Compliance
 - [x] Audit and fix WCAG 2.1 contrast and keyboard navigation issues.
 - [x] Implement `prefers-reduced-motion` logic.
+- [x] **Verify Proxy Middleware**
+    - **Path:** `src/proxy.ts`
+    - **Action:** Ensure `proxy.ts` is correctly handling routing and applying security headers. (Note: Project uses custom `proxy.ts` convention instead of `middleware.ts`).
+    - **Status:** **✅ Verified & Optimized.** Confirmed `proxy.ts` as the project standard. Optimized headers and routing logic.
 - [x] Create `/privacy` and `/terms` routes with boilerplate content.
 - [x] Add a compliant Cookie Consent banner.
 
 ### Phase 5.3: Reliability & Metadata
-- [ ] Implement root-level `error.tsx`, `loading.tsx`, and `not-found.tsx`.
+- [x] Implement root-level `error.tsx`, `loading.tsx`, and `not-found.tsx`.
 - [ ] Integrate JSON-LD structured data.
 - [x] Add dynamic Open Graph generation.
+- [x] **Verify & Standardize Security Headers**: Implemented robust CSP and HSTS in `proxy.ts`. (Note: `proxy.ts` is the project-specific naming convention).
+
 
 Next Steps
 I18n Strategy: Should we proceed with a sub-path routing strategy (e.g., /fr/dashboard)?

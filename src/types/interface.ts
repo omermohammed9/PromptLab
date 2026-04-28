@@ -26,11 +26,9 @@ export interface Prompt {
   parent_id?: string | null
   version_number?: number
   
-  //  NOTE: DB does not have this column, so it is optional
   explanation?: string 
-  
-  likes_count?: number
-  remix_count?: number
+  likes_count: number
+  remix_count: number
   is_liked?: boolean
 
   // Populated only when the query joins the profiles table
@@ -64,16 +62,20 @@ export interface UserProfile {
   username: string | null;
   full_name: string | null;
   is_banned: boolean;
-  last_sign_in_at: string | null;
-  created_at: string;
-  status: 'Active' | 'Inactive';
+  last_login: string | null; // Correct column name
+  updated_at: string;        // Present in DB
+  
+  // These columns are currently missing in the DB schema but used in the UI
+  last_sign_in_at?: string | null; 
+  created_at?: string;
+  status?: 'Active' | 'Inactive';
   
   last_ip?: string;
   location_data?: {
     city?: string;
     country?: string;
     countryCode?: string;
-    isp?: string; // We need this for the Earthlink badge
+    isp?: string; 
   }; 
   moderator_notes?: string | null;
 }

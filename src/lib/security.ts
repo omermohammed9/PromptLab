@@ -21,18 +21,24 @@ export async function isIpWhitelisted(requesterIp?: string): Promise<boolean> {
   if (!ipToCheck) {
     try {
       const headerList = await headers();
-      const forwardedFor = headerList.get("x-forwarded-for");
-      ipToCheck = forwardedFor ? forwardedFor.split(",")[0] : "127.0.0.1";
+      // Try multiple standard headers for IP detection
+      ipToCheck = 
+        headerList.get("x-client-ip") || 
+        headerList.get("x-forwarded-for")?.split(",")[0] || 
+        headerList.get("x-real-ip") || 
+        "127.0.0.1";
     } catch (e) {
-      // Not in a request context
+      // Not in a request context (e.g., build time or background job)
       return false;
     }
   }
 
   if (!ipToCheck) return false;
 
-  // Basic check: direct match
-  // In a more advanced version, we could support CIDR ranges
+  // Development Bypass: If we are in development, we allow all access
+  if (process.env.NODE_ENV === 'development') return true;
+
+  // Basic check: direct match or localhost mapping
   return allowedIps.includes(ipToCheck) || (allowedIps.includes("::1") && ipToCheck === "127.0.0.1");
 }
 
@@ -40,9 +46,23 @@ export async function isIpWhitelisted(requesterIp?: string): Promise<boolean> {
  * Strict check for admin IP. Throws an error if not whitelisted.
  */
 export async function validateAdminIp(ip?: string) {
+  // We need to resolve the IP here too for logging purposes if it fails
+  let detectedIp = ip;
+  if (!detectedIp) {
+    try {
+      const headerList = await headers();
+      detectedIp = headerList.get("x-client-ip") || 
+                   headerList.get("x-forwarded-for")?.split(",")[0] || 
+                   headerList.get("x-real-ip") || 
+                   "Unknown";
+    } catch {
+      detectedIp = "Unknown";
+    }
+  }
+
   if (!(await isIpWhitelisted(ip))) {
-    console.warn(`Unauthorized Admin Access Attempt from IP: ${ip || 'Unknown'}`);
-    throw new Error("Access Denied: Your IP address is not whitelisted for administrative actions.");
+    console.warn(`[SECURITY] Unauthorized Admin Access Attempt from IP: ${detectedIp}`);
+    throw new Error(`Access Denied: Your IP address (${detectedIp}) is not whitelisted for administrative actions.`);
   }
 }
 

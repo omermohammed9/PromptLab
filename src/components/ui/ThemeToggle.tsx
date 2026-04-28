@@ -23,7 +23,7 @@ export default function ThemeToggle() {
   return (
     <button 
       onClick={() => setTheme(isDark ? 'light' : 'dark')} 
-      className={`p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-yellow-400 transition-all border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isReducedMotion ? 'hover:scale-110 active:scale-95' : ''}`}
+      className={`p-3 md:p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-yellow-400 transition-[transform,background-color,color,border-color] border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${!isReducedMotion ? 'hover:scale-110 active:scale-95' : ''}`}
       title={t('toggle_theme')}
       aria-label={t('toggle_theme')}
     >

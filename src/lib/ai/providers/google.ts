@@ -16,7 +16,7 @@ export class GeminiProvider extends BaseProvider {
 
     try {
       const model = this.client.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         systemInstruction: system,
       });
 

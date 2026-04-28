@@ -109,5 +109,16 @@ npx playwright test --ui
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
+
+## 🆕 Recent Updates (April 2026)
+
+### 🎨 UI/UX & Performance Audit
+- **Theme Token System**: Fully migrated to HSL-based theme tokens for precise Light/Dark mode control.
+- **Z-Index Governance**: Established a centralized Z-index scale to resolve floating component collisions.
+- **Contrast Optimization**: Boosted text legibility across all components in Light Mode, achieving higher accessibility standards.
+- **Transition Performance**: Optimized Framer Motion and CSS transitions by targeting specific properties, reducing CPU usage during animations.
+- **Mobile Ergonomics**: Enhanced touch targets for navigation elements to meet WCAG 44x44px standards.
+
+---
 *Built with ❤️ by the PromptLab Team.*
 

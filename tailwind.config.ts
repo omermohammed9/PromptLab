@@ -10,6 +10,20 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        card: 'hsl(var(--background-card))',
+        primary: 'hsl(var(--foreground-primary))',
+        secondary: 'hsl(var(--foreground-secondary))',
+        'border-dim': 'hsl(var(--border-dim))',
+        'amber-text': 'hsl(var(--accent-amber-text))',
+      },
+      zIndex: {
+        'navbar': 'var(--z-navbar)',
+        'admin-switch': 'var(--z-admin-switch)',
+        'modal': 'var(--z-modal)',
+        'popover': 'var(--z-popover)',
+        'tooltip': 'var(--z-tooltip)',
+      },
       fontFamily: {
         sans: ['var(--font-inter)', 'sans-serif'],
         display: ['var(--font-space-grotesk)', 'sans-serif'],

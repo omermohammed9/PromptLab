@@ -8,6 +8,28 @@
   --background-end-rgb: 255, 255, 255;
   --font-inter: 'Inter', sans-serif;
   --font-space-grotesk: 'Space Grotesk', sans-serif;
+  
+  /* Theme Tokens */
+  --background-card: 0 0% 100%;
+  --foreground-primary: 222.2 84% 4.9%;
+  --foreground-secondary: 215.4 16.3% 46.9%;
+  --border-dim: 214.3 31.8% 91.4%;
+  --accent-amber-text: 35 92% 33%;
+
+  /* Z-Index Scale */
+  --z-navbar: 50;
+  --z-admin-switch: 40;
+  --z-modal: 100;
+  --z-popover: 110;
+  --z-tooltip: 120;
+}
+
+.dark {
+  --background-card: 222.2 84% 4.9%;
+  --foreground-primary: 210 40% 98%;
+  --foreground-secondary: 215 20.2% 65.1%;
+  --border-dim: 217.2 32.6% 17.5%;
+  --accent-amber-text: 45 93% 47%;
 }
 
 @layer base {
@@ -18,15 +40,11 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
-
-  * {
-    @apply transition-colors duration-200 ease-in-out;
-  }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/5 dark:bg-white/[0.03] backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+    @apply bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border border-border-dim dark:border-white/5 shadow-xl dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
     position: relative;
     overflow: hidden;
   }

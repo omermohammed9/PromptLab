@@ -478,7 +478,7 @@ export default function Workbench({
     <section className="mb-16 scroll-mt-24" id="workbench">
 
       {/* INPUT CARD */}
-      <div className="relative glass rounded-[2.5rem] shadow-2xl overflow-hidden transition-all duration-500 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500/50">
+      <div className="relative glass rounded-[2.5rem] shadow-2xl overflow-hidden transition-[box-shadow,border-color] duration-500 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500/50">
 
         {/* Toolbar */}
         <div className="flex items-center justify-between px-6 py-5 bg-white/10 backdrop-blur-md border-b border-white/10">
@@ -591,7 +591,7 @@ export default function Workbench({
                 <button
                   key={t.label}
                   onClick={() => setInput(t.text)}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white text-slate-500 dark:text-slate-400 rounded-xl text-xs font-bold transition-all border border-slate-100 dark:border-slate-700 hover:border-blue-500 shadow-sm hover:shadow-blue-500/20 whitespace-nowrap active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white text-slate-500 dark:text-slate-400 rounded-xl text-xs font-bold transition-[background-color,color,border-color,transform,box-shadow] border border-slate-100 dark:border-slate-700 hover:border-blue-500 shadow-sm hover:shadow-blue-500/20 whitespace-nowrap active:scale-95"
                 >
                   {t.icon} {t.label}
                 </button>
@@ -634,7 +634,7 @@ export default function Workbench({
             disabled={!input.trim() || isBusy}
             aria-label="Refine prompt"
             className={`
-              flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 
+              flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-[background-color,color,transform,box-shadow] duration-300 
               ${!input.trim() || isBusy
                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                 : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl hover:shadow-slate-400/20 dark:hover:shadow-white/10 active:scale-95'
